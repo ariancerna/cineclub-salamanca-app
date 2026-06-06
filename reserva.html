@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cineclub Salamanca - Reserva</title>
+    <!-- Tailwind Play CDN -->
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @import "tailwindcss";
+        @theme {
+            --color-brand-primary: #b7102a;
+            --color-brand-surface: #ffffff;
+            --color-brand-ink: #271717;
+            --color-brand-outline: #8f6f6e;
+            --font-display: "Space Grotesk", sans-serif;
+        }
+        @utility btn-primary { @apply bg-brand-primary text-white font-bold uppercase tracking-widest px-8 py-4 transition-all hover:bg-brand-ink; }
+        @utility btn-outline { @apply border-2 border-brand-ink text-brand-ink font-bold uppercase tracking-widest px-8 py-4 transition-all hover:bg-brand-ink hover:text-white; }
+        @utility shadow-hard { @apply shadow-[4px_4px_0px_0px_rgba(39,23,23,1)]; }
+        @utility shadow-hard-active { @apply active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(39,23,23,1)]; }
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="fade-in">
+    <nav class="sticky top-0 z-40 bg-white border-b border-brand-outline px-6 h-20 flex justify-between items-center">
+        <a href="index.html" class="text-2xl font-bold tracking-tighter hover:text-brand-primary">CINECLUB SALAMANCA</a>
+        <div class="flex gap-8 font-bold text-xs uppercase tracking-widest">
+            <a href="mis-entradas.html" class="hover:text-brand-primary">Mis Entradas</a>
+            <a href="admin.html" class="hover:text-brand-primary">Admin</a>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-20">
+        <a href="index.html" class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:text-brand-primary mb-12">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> Volver a Cartelera
+        </a>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-16">
+            <!-- Interfaz de Asientos -->
+            <div class="lg:col-span-8">
+                <h1 id="peli-titulo" class="text-5xl font-bold uppercase mb-4">Selección de Asientos</h1>
+                <p class="text-brand-outline text-sm mb-12">Sala Principal • Sábado 24 Nov • 19:30 HRS</p>
+
+                <div class="relative mb-20 text-center">
+                    <div class="h-2 w-full bg-brand-outline/20 rounded-t-full"></div>
+                    <div class="mt-4 text-[10px] font-bold uppercase tracking-[0.3em] text-brand-outline">Pantalla</div>
+                </div>
+
+                <div class="overflow-x-auto pb-4 mb-4">
+                    <div id="seat-grid" class="flex flex-col gap-4 items-center mx-auto">
+                        <!-- Asientos generados por JS -->
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-8 mt-20 pt-8 border-t border-brand-outline">
+                    <div class="flex items-center gap-2 text-[10px] font-bold uppercase"><div class="w-4 h-4 border border-brand-ink"></div> Disponible</div>
+                    <div class="flex items-center gap-2 text-[10px] font-bold uppercase"><div class="w-4 h-4 bg-brand-primary"></div> Seleccionado</div>
+                    <div class="flex items-center gap-2 text-[10px] font-bold uppercase"><div class="w-4 h-4 bg-gray-100 flex items-center justify-center">×</div> Ocupado</div>
+                </div>
+            </div>
+
+            <!-- Resumen Sidebar -->
+            <div class="lg:col-span-4">
+                <div class="bg-white border border-brand-ink p-8 shadow-hard sticky top-28">
+                    <h2 class="text-2xl font-bold uppercase mb-8 border-b border-brand-outline pb-4">Tu Reserva</h2>
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-[10px] font-bold text-brand-outline uppercase mb-2">Nombre del titular</label>
+                            <input id="input-nombre" type="text" placeholder="Escribe tu nombre..." class="w-full border-b border-brand-outline py-2 focus:outline-none focus:border-brand-primary font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-brand-outline uppercase mb-2">Asiento Seleccionado</label>
+                            <div id="resumen-asiento" class="text-sm font-bold bg-brand-surface p-4 border border-brand-outline border-dashed">
+                                Ninguno seleccionado
+                            </div>
+                        </div>
+                        <div class="pt-8 border-t border-brand-outline">
+                            <div class="flex justify-between items-end mb-8">
+                                <span class="text-[10px] font-bold uppercase">Total</span>
+                                <span class="text-4xl font-bold text-brand-primary">S/ 0.00</span>
+                            </div>
+                            <button id="btn-confirmar" disabled class="w-full btn-primary shadow-hard shadow-hard-active flex items-center justify-center gap-2">
+                                Continuar <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal de Snacks (Imagen 11) -->
+    <div id="modal-snacks" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
+        <div class="absolute inset-0 bg-brand-ink/90 backdrop-blur-sm"></div>
+        <div class="relative bg-white w-full max-w-2xl border border-brand-ink shadow-hard flex flex-col max-h-[90vh]">
+            <div class="p-10 border-b border-brand-ink bg-brand-surface text-center">
+                <i data-lucide="check-circle" class="w-12 h-12 text-brand-primary mx-auto mb-4"></i>
+                <h2 class="text-4xl font-bold uppercase">Pre-orden de Snacks</h2>
+                <p class="text-brand-outline text-sm">Añade productos a tu entrada y recíbelos al ingresar.</p>
+            </div>
+            <div id="snacks-list" class="p-10 space-y-6 overflow-y-auto bg-gray-50 flex-grow">
+                <!-- Snacks generados por JS -->
+            </div>
+            <div class="p-8 border-t border-brand-ink flex justify-between items-center bg-brand-surface">
+                <div>
+                    <span class="block text-[8px] font-bold text-brand-outline uppercase tracking-widest">A pagar en puerta</span>
+                    <div id="snacks-total" class="text-2xl font-bold">S/ 0.00</div>
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="window.finalizarReserva()" class="text-xs font-bold uppercase underline">Omitir</button>
+                    <button onclick="window.finalizarReserva()" class="btn-primary px-12 shadow-hard shadow-hard-active">Confirmar Todo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script type="module" src="/src/reserva.js"></script>
+</body>
+</html>

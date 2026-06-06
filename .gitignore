@@ -1,0 +1,8 @@
+backend/
+.claude/
+documentacion-tecnica.html
+iniciar-con-docker.cmd
+*.cmd
+*.html.bak
+Thumbs.db
+.DS_Store
