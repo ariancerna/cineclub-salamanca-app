@@ -22,8 +22,5 @@ iniciar-con-docker.cmd
 # Documentación interna
 documentacion-tecnica.html
 
-# Claude Code
-.claude/
-
 # Docker volumes
 cineclub_data/
