@@ -1,8 +1,29 @@
-backend/
-.claude/
-documentacion-tecnica.html
-iniciar-con-docker.cmd
-*.cmd
-*.html.bak
-Thumbs.db
+# Maven / Spring Boot
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Scripts locales
+backend/iniciar.cmd
+backend/test.cmd
+iniciar-con-docker.cmd
+
+# Documentación interna
+documentacion-tecnica.html
+
+# Claude Code
+.claude/
+
+# Docker volumes
+cineclub_data/

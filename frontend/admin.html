@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cineclub Salamanca - Admin</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @theme {
+            --color-brand-primary: #b7102a;
+            --color-brand-surface: #ffffff;
+            --color-brand-ink: #271717;
+            --color-brand-outline: #8f6f6e;
+        }
+        @utility btn-primary { @apply bg-brand-primary text-white font-bold uppercase tracking-widest px-8 py-4 transition-all hover:bg-brand-ink; }
+        @utility shadow-hard { @apply shadow-[4px_4px_0px_0px_rgba(39,23,23,1)]; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .spin { animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-50 fade-in">
+
+    <nav class="sticky top-0 z-40 bg-white border-b border-brand-outline px-6 h-20 flex justify-between items-center">
+        <a href="index.html" class="text-2xl font-bold tracking-tighter hover:text-brand-primary transition-colors">CINECLUB SALAMANCA</a>
+        <div class="flex gap-6 font-bold text-xs uppercase tracking-widest items-center">
+            <span class="border border-brand-primary text-brand-primary px-3 py-1 text-[10px]">Panel Admin</span>
+            <a href="mis-entradas.html" class="hover:text-brand-primary">Mis Entradas</a>
+            <button id="nav-logout" class="hover:text-brand-primary">Salir</button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-12 md:py-16">
+
+        <header class="mb-8 border-b border-brand-outline pb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-bold uppercase tracking-tighter leading-none mb-2">Control de Acceso</h1>
+                <p class="text-brand-outline text-xs italic">Verifique membresía antes de confirmar el ingreso.</p>
+            </div>
+            <div id="funcion-selector" class="flex items-center gap-3">
+                <label class="text-[10px] font-bold uppercase text-brand-outline tracking-widest">Función:</label>
+                <select id="select-funcion" class="border border-brand-ink px-4 py-2 text-xs font-bold bg-white focus:outline-none focus:border-brand-primary">
+                    <option value="">Cargando...</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- Barra de búsqueda -->
+        <div class="flex flex-col sm:flex-row gap-4 mb-8">
+            <div class="flex-grow relative flex items-center">
+                <i data-lucide="search" class="absolute left-4 w-4 h-4 text-brand-outline pointer-events-none"></i>
+                <input id="search-input" type="text" placeholder="Buscar por nombre o código de ticket..."
+                    class="w-full border border-brand-ink py-3 pl-11 pr-4 focus:outline-none focus:border-brand-primary font-bold text-sm bg-white">
+            </div>
+            <button id="search-btn" class="btn-primary px-10 text-sm w-full sm:w-auto">Buscar</button>
+        </div>
+
+        <!-- Tabla -->
+        <div class="border border-brand-ink bg-white shadow-hard">
+            <div class="overflow-x-auto">
+                <div class="min-w-[700px]">
+                    <div class="grid grid-cols-12 bg-brand-ink text-white py-4 px-6 text-[10px] font-bold uppercase tracking-widest">
+                        <div class="col-span-3">Ticket</div>
+                        <div class="col-span-1">Butaca</div>
+                        <div class="col-span-4">Espectador</div>
+                        <div class="col-span-2">Estado</div>
+                        <div class="col-span-2 text-right">Confirmar</div>
+                    </div>
+                    <div id="admin-table" class="divide-y divide-gray-100">
+                        <div class="p-12 text-center">
+                            <div class="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full spin mx-auto mb-3"></div>
+                            <p class="text-brand-outline font-bold text-xs uppercase tracking-widest">Cargando reservas...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats footer -->
+            <div class="px-6 py-4 border-t border-brand-outline bg-brand-surface flex flex-col sm:flex-row justify-between items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-brand-outline">
+                <span id="sesion-info">—</span>
+                <div class="flex gap-6">
+                    <span>Total: <strong id="stat-total" class="text-brand-ink">0</strong></span>
+                    <span>Ingresados: <strong id="stat-ingresados" class="text-green-600">0</strong></span>
+                    <span>Pendientes: <strong id="stat-pendientes" class="text-brand-primary">0</strong></span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script type="module" src="src/js/pages/admin.js?v=3"></script>
+</body>
+</html>
