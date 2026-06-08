@@ -27,3 +27,7 @@ documentacion-tecnica.html
 
 # Docker volumes
 cineclub_data/
+
+# Environment variables
+.env
+.env.local
