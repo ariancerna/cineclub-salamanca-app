@@ -57,19 +57,51 @@ cineclub-salamanca-app/
 
 ## Cómo ejecutar
 
+### 0. Configurar variables de entorno
+
+Copia el archivo `.env.example` como `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Este archivo contiene todas las variables sensibles (credenciales de BD, JWT secret, etc.). No se trackeará en git por seguridad.
+
 ### 1. Levantar la base de datos
 
 ```bash
 docker compose up -d
 ```
 
-Esto inicia un contenedor PostgreSQL en el puerto `5432` con la base de datos `cineclub`.
+Esto inicia un contenedor PostgreSQL en el puerto `5432` con la base de datos `cineclub`. Las credenciales se cargan automáticamente desde `.env`.
 
 ### 2. Iniciar el backend
 
+Las variables de entorno se cargan automáticamente desde `.env` antes de iniciar.
+
+**Opción A (Windows - Cmd):**
 ```bash
 cd backend
-./mvnw spring-boot:run
+iniciar.cmd
+```
+
+**Opción B (Git Bash / Linux / macOS):**
+```bash
+cd backend
+chmod +x iniciar.sh
+./iniciar.sh
+```
+
+**Opción C (PowerShell):**
+```powershell
+cd backend
+.\iniciar.ps1
+```
+
+**Opción D (Manual - Carga variables y ejecuta Maven):**
+```bash
+cd backend
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 El servidor queda disponible en `http://localhost:8080`
