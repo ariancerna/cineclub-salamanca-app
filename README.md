@@ -1,173 +1,124 @@
-# Cineclub Salamanca — Sistema de Reservas Online
+# Cineclub Salamanca — Online Booking System
 
-Aplicación web para la gestión de reservas y control de aforo del Cineclub de Salamanca (Ate, Lima). Permite a los espectadores reservar butacas de forma gratuita y preordenar productos del minibar, mientras el administrador gestiona funciones y valida ingresos en tiempo real.
+Web application for managing seat reservations and capacity control for Cineclub Salamanca (Ate, Lima). It lets moviegoers reserve seats for free and pre-order minibar items, while administrators manage screenings and validate check-ins in real time.
 
-**Universidad Tecnológica del Perú — Curso Integrador I: Sistemas Software**
+Universidad Tecnológica del Perú — Integrating Course I: Software Systems
 
----
+## Technologies
 
-## Tecnologías
+Backend: Java 21 + Spring Boot 3.4.5. Security: Spring Security + JWT (JJWT 0.12.6) + BCrypt. Database: PostgreSQL 16 (Docker). ORM: Spring Data JPA + Hibernate. Validation: Jakarta Validation. Documentation: Swagger UI / OpenAPI 3.1. Frontend: HTML5 + Tailwind CSS v4 + vanilla JS. Testing: JUnit 5 + Mockito (22 unit tests).
 
-| Capa | Tecnología |
-|------|-----------|
-| Backend | Java 21 + Spring Boot 3.4.5 |
-| Seguridad | Spring Security + JWT (JJWT 0.12.6) + BCrypt |
-| Base de datos | PostgreSQL 16 (Docker) |
-| ORM | Spring Data JPA + Hibernate |
-| Validación | Jakarta Validation |
-| Documentación | Swagger UI / OpenAPI 3.1 |
-| Frontend | HTML5 + Tailwind CSS v4 + Vanilla JS |
-| Pruebas | JUnit 5 + Mockito (22 tests unitarios) |
+## Architecture
 
----
-
-## Arquitectura
-
-El proyecto sigue el patrón **MVC** con separación en capas y aplica principios **SOLID**:
+The project follows the MVC pattern with layered separation and applies SOLID principles.
 
 ```
 cineclub-salamanca-app/
-├── backend/                        # API REST — Spring Boot
+├── backend/                # REST API — Spring Boot
 │   └── src/main/java/com/cineclubsalamanca/
-│       ├── controller/             # Controladores REST
-│       ├── service/                # Lógica de negocio
-│       ├── repository/             # Capa DAO (Spring Data JPA)
-│       ├── entity/                 # Entidades JPA
-│       ├── dto/                    # Objetos de transferencia
-│       ├── security/               # JWT + Spring Security
-│       └── config/                 # Configuración general
-├── frontend/                       # Interfaz web estática
-│   ├── index.html                  # Cartelera
-│   ├── reserva.html                # Selección de asiento + minibar
-│   ├── mis-entradas.html           # Historial del usuario
-│   ├── admin.html                  # Panel de administración
-│   └── src/js/                     # Lógica JavaScript modular
-└── docker-compose.yml              # PostgreSQL en Docker
+│       ├── controller/     # REST controllers
+│       ├── service/        # Business logic
+│       ├── repository/     # DAO layer (Spring Data JPA)
+│       ├── entity/         # JPA entities
+│       ├── dto/            # Data transfer objects
+│       ├── security/       # JWT + Spring Security
+│       └── config/         # General configuration
+├── frontend/                # Static web interface
+│   ├── index.html          # Movie listing
+│   ├── reserva.html        # Seat selection + minibar
+│   ├── mis-entradas.html   # User history
+│   ├── admin.html          # Admin panel
+│   └── src/js/             # Modular JavaScript logic
+└── docker-compose.yml       # PostgreSQL in Docker
 ```
 
----
+## Requirements
 
-## Requisitos
+Java 21, Docker Desktop, and Python 3 (to serve the frontend).
 
-- [Java 21](https://aka.ms/download-jdk/microsoft-jdk-21-windows-x64.msi)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- Python 3 (para servir el frontend)
+## How to run it
 
----
+### 0. Set up environment variables
 
-## Cómo ejecutar
-
-### 0. Configurar variables de entorno
-
-Copia el archivo `.env.example` como `.env`:
+Copy `.env.example` as `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Este archivo contiene todas las variables sensibles (credenciales de BD, JWT secret, etc.). No se trackeará en git por seguridad.
+This file holds all sensitive variables (DB credentials, JWT secret, etc.) and is not tracked in git for security reasons.
 
-### 1. Levantar la base de datos
+### 1. Start the database
 
 ```bash
 docker compose up -d
 ```
 
-Esto inicia un contenedor PostgreSQL en el puerto `5432` con la base de datos `cineclub`. Las credenciales se cargan automáticamente desde `.env`.
+This starts a PostgreSQL container on port 5432 with the `cineclub` database. Credentials are loaded automatically from `.env`.
 
-### 2. Iniciar el backend
+### 2. Start the backend
 
-Las variables de entorno se cargan automáticamente desde `.env` antes de iniciar.
+Environment variables are loaded automatically from `.env` before startup.
 
-**Opción A (Windows - Cmd):**
+Option A (Windows - Cmd):
+
 ```bash
 cd backend
 iniciar.cmd
 ```
 
-**Opción B (Git Bash / Linux / macOS):**
+Option B (Git Bash / Linux / macOS):
+
 ```bash
 cd backend
 chmod +x iniciar.sh
 ./iniciar.sh
 ```
 
-**Opción C (PowerShell):**
-```powershell
+Option C (PowerShell):
+
+```bash
 cd backend
 .\iniciar.ps1
 ```
 
-**Opción D (Manual - Carga variables y ejecuta Maven):**
+Option D (manual — load variables and run Maven):
+
 ```bash
 cd backend
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-El servidor queda disponible en `http://localhost:8080`
+The server will be available at `http://localhost:8080`.
 
-### 3. Iniciar el frontend
+### 3. Start the frontend
 
 ```bash
 cd frontend
 python -m http.server 3000
 ```
 
-Abrir `http://localhost:3000`
+Open `http://localhost:3000`.
 
----
+## Seed data
 
-## Datos iniciales
+On first startup, the system automatically creates an administrator account (`admin@cineclub.com` / `admin1234`), 8 classic catalog movies, 8 scheduled screenings, and 6 minibar products.
 
-Al arrancar por primera vez, el sistema crea automáticamente:
+## Main endpoints
 
-- **Usuario administrador:** `admin@cineclub.com` / `admin1234`
-- 8 películas del catálogo clásico
-- 8 funciones programadas
-- 6 productos del minibar
+Public endpoints include registration and login (`POST /api/auth/register`, `POST /api/auth/login`) and read-only access to movies, screenings and products (`GET /api/peliculas`, `GET /api/funciones`, `GET /api/productos`). Authenticated users can create and view their own reservations (`POST /api/reservas`, `GET /api/reservas/mis-reservas`). Admin-only endpoints include viewing reservations per screening, confirming check-ins, and managing movies and screenings (`GET /api/reservas/funcion/{id}`, `PATCH /api/reservas/{codigo}/confirmar-ingreso`, `POST /api/peliculas`, `POST /api/funciones`).
 
----
+Full interactive documentation: `http://localhost:8080/swagger-ui/index.html`.
 
-## Endpoints principales
-
-| Método | Endpoint | Acceso |
-|--------|----------|--------|
-| `POST` | `/api/auth/register` | Público |
-| `POST` | `/api/auth/login` | Público |
-| `GET` | `/api/peliculas` | Público |
-| `GET` | `/api/funciones` | Público |
-| `GET` | `/api/productos` | Público |
-| `POST` | `/api/reservas` | Autenticado |
-| `GET` | `/api/reservas/mis-reservas` | Autenticado |
-| `GET` | `/api/reservas/funcion/{id}` | Admin |
-| `PATCH` | `/api/reservas/{codigo}/confirmar-ingreso` | Admin |
-| `POST` | `/api/peliculas` | Admin |
-| `POST` | `/api/funciones` | Admin |
-
-Documentación interactiva completa: [`http://localhost:8080/swagger-ui/index.html`](http://localhost:8080/swagger-ui/index.html)
-
----
-
-## Pruebas
+## Tests
 
 ```bash
 cd backend
 ./mvnw test
 ```
 
-**22 pruebas unitarias** sobre la capa de servicios (JUnit 5 + Mockito):
-- `ReservaServiceTest` — 9 tests (reglas de negocio: aforo, duplicados, butacas)
-- `AuthServiceTest` — 5 tests (registro, login, encriptación BCrypt)
-- `FuncionServiceTest` — 8 tests (CRUD de funciones)
+22 unit tests covering the service layer (JUnit 5 + Mockito): ReservaServiceTest with 9 tests for business rules (capacity, duplicates, seats), AuthServiceTest with 5 tests for registration, login and BCrypt encryption, and FuncionServiceTest with 8 tests for screening CRUD operations.
 
----
+## Team members
 
-## Integrantes
-
-| Nombre | Código | Rol |
-|--------|--------|-----|
-| Joan Pelayo Soto | U23311319 | Backend Developer |
-| Arian Cerna Martinez | U23200256 | Frontend Developer |
-| Fabián Morocho Rosales | U22323551 | Project Manager |
-| Fabrizio Santillán Valdiviezo | U20229814 | Analista Funcional |
-| Gianmarco Chávez Mejía | U23246322 | Testing y Documentación |
+Joan Pelayo Soto (Backend Developer), Arian Cerna Martinez (Frontend Developer), Fabián Morocho Rosales (Project Manager), Fabrizio Santillán Valdiviezo (Functional Analyst), and Gianmarco Chávez Mejía (Testing and Documentation).
