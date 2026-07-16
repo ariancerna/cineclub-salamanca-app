@@ -18,8 +18,9 @@ RUN mvn -B clean package -DskipTests
 # ---------- Etapa 2: ejecucion ----------
 FROM eclipse-temurin:21-jre-alpine
 
-# curl lo necesita el HEALTHCHECK
-RUN apk add --no-cache curl
+# curl lo necesita el HEALTHCHECK. tzdata es obligatorio en Alpine para que TZ funcione:
+# sin el paquete, la JVM ignora la variable y se queda en UTC.
+RUN apk add --no-cache curl tzdata
 
 RUN addgroup -S cineclub && adduser -S cineclub -G cineclub
 
@@ -33,7 +34,10 @@ USER cineclub
 
 EXPOSE 8080
 
-ENV SPRING_PROFILES_ACTIVE=prod \
+# Las fechas de las funciones se guardan como LocalDateTime, sin zona. El contenedor debe
+# correr en la hora del cineclub o una funcion de las 19:30 se daria por pasada a las 14:30.
+ENV TZ=America/Lima \
+    SPRING_PROFILES_ACTIVE=prod \
     LOG_PATH=/app/logs \
     JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+UseContainerSupport"
 

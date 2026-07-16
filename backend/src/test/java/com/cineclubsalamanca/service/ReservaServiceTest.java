@@ -100,6 +100,24 @@ class ReservaServiceTest {
     }
 
     @Test
+    @DisplayName("No se puede reservar una función que ya se proyectó")
+    void crear_debeLanzarExcepcion_cuandoFuncionYaPaso() {
+        Usuario usuario = usuarioBase();
+        Funcion funcion = funcionBase();
+        funcion.setFechaHora(LocalDateTime.now().minusDays(1));
+        CrearReservaRequest req = new CrearReservaRequest(1L, "A-1", Collections.emptyList());
+
+        when(usuarioRepository.findByEmail("joan@test.com")).thenReturn(Optional.of(usuario));
+        when(funcionService.buscarPorId(1L)).thenReturn(funcion);
+
+        assertThatThrownBy(() -> reservaService.crear("joan@test.com", req))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ya se proyectó");
+
+        verify(reservaRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("No se puede reservar si el aforo está agotado")
     void crear_debeLanzarExcepcion_cuandoAforoAgotado() {
         Usuario usuario = usuarioBase();

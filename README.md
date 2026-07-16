@@ -6,7 +6,7 @@ Universidad Tecnológica del Perú — Integrating Course I: Software Systems
 
 ## Technologies
 
-Backend: Java 21 + Spring Boot 3.4.5. Security: Spring Security + JWT (JJWT 0.12.6) + BCrypt. Database: PostgreSQL 15 (Docker), H2 for tests. ORM: Spring Data JPA + Hibernate. Validation: Jakarta Validation. Documentation: Swagger UI / OpenAPI 3.1 and Javadoc. Frontend: HTML5 + Tailwind CSS v4 + vanilla JS. Testing: JUnit 5 + Mockito + AssertJ (79 tests). Coverage: JaCoCo. Dependency scanning: OWASP Dependency-Check. Monitoring: Spring Boot Actuator + Micrometer. Deployment: Maven + multi-stage Docker.
+Backend: Java 21 + Spring Boot 3.4.5. Security: Spring Security + JWT (JJWT 0.12.6) + BCrypt. Database: PostgreSQL 15 (Docker), H2 for tests. ORM: Spring Data JPA + Hibernate. Validation: Jakarta Validation. Documentation: Swagger UI / OpenAPI 3.1 and Javadoc. Frontend: HTML5 + Tailwind CSS v4 + vanilla JS. Testing: JUnit 5 + Mockito + AssertJ (80 tests). Coverage: JaCoCo. Dependency scanning: OWASP Dependency-Check. Monitoring: Spring Boot Actuator + Micrometer. Deployment: Maven + multi-stage Docker.
 
 ## Documentation
 
@@ -32,7 +32,7 @@ cineclub-salamanca-app/
 │       │   ├── maintenance/# Scheduled tasks (cron jobs)
 │       │   └── config/     # General configuration
 │       └── test/java/com/cineclubsalamanca/
-│           ├── service/    # Unit tests (63)
+│           ├── service/    # Unit tests (64)
 │           └── integration/# End-to-end security tests (16)
 ├── frontend/                # Static web interface
 │   ├── index.html          # Movie listing
@@ -129,12 +129,12 @@ Full interactive documentation: `http://localhost:8080/swagger-ui/index.html`.
 
 ```bash
 cd backend
-./mvnw test                  # 79 tests
+./mvnw test                  # 80 tests
 ./mvnw verify                # tests + coverage + 70% threshold
 ./mvnw verify -Pseguridad    # dependency vulnerability scan
 ```
 
-79 tests in total: 63 unit tests (JUnit 5 + Mockito) and 16 integration tests. ReservaServiceTest has 17 cases for business rules (capacity, duplicates, seats, minibar subtotals), SeguridadIntegrationTest has 16 for JWT, roles, validation and SQL injection, FuncionServiceTest has 13 for screening CRUD and rescheduling, TareasMantenimientoTest has 10 for the capacity audit and purge jobs, PeliculaServiceTest and ProductoServiceTest have 9 each, and AuthServiceTest has 5 for registration, login and BCrypt encryption.
+80 tests in total: 64 unit tests (JUnit 5 + Mockito) and 16 integration tests. ReservaServiceTest has 18 cases for business rules (capacity, duplicates, seats, minibar subtotals), SeguridadIntegrationTest has 16 for JWT, roles, validation and SQL injection, FuncionServiceTest has 13 for screening CRUD and rescheduling, TareasMantenimientoTest has 10 for the capacity audit and purge jobs, PeliculaServiceTest and ProductoServiceTest have 9 each, and AuthServiceTest has 5 for registration, login and BCrypt encryption.
 
 Service layer coverage is 100% of lines and branches. The report is generated at `backend/target/site/jacoco/index.html`. Details in the [testing report](docs/INFORME_PRUEBAS.md).
 

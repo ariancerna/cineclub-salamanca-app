@@ -31,6 +31,10 @@ public class ReservaService {
 
         Funcion funcion = funcionService.buscarPorId(req.funcionId());
 
+        if (funcion.getFechaHora().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("La función ya se proyectó y no admite reservas");
+        }
+
         if (funcion.getAforoDisponible() <= 0) {
             throw new IllegalStateException("No hay butacas disponibles para esta función");
         }

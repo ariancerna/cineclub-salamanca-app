@@ -23,8 +23,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (f?.pelicula?.id) salaMap[String(f.pelicula.id)] = f.sala;
     });
 
-    if (header && peliculas.length > 0) {
-        const featured = peliculas[0];
+    // /api/funciones solo devuelve las funciones futuras. La cartelera muestra unicamente
+    // las peliculas que tienen una: ofrecer una pelicula ya proyectada lleva al usuario a
+    // una reserva que falla con "No se encontro la funcion para esta pelicula".
+    const enCartelera = peliculas.filter(p => salaMap[String(p.id)] !== undefined);
+
+    if (header && enCartelera.length > 0) {
+        const featured = enCartelera[0];
         header.innerHTML = `
             <div class="max-w-7xl mx-auto px-6 py-20 flex flex-col md:flex-row gap-12 items-center">
                 <div class="w-full md:w-3/5 aspect-video bg-gray-900 border border-white/10 overflow-hidden">
@@ -47,9 +52,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (grid) {
-        const rest = peliculas.slice(1);
-        if (rest.length === 0) {
-            grid.innerHTML = '<p class="col-span-full text-center text-gray-500">No hay películas disponibles</p>';
+        const rest = enCartelera.slice(1);
+        if (enCartelera.length === 0) {
+            grid.innerHTML = '<p class="col-span-full text-center text-gray-500">No hay funciones programadas por el momento</p>';
+        } else if (rest.length === 0) {
+            grid.innerHTML = '<p class="col-span-full text-center text-gray-500">No hay más funciones programadas</p>';
         } else {
             grid.innerHTML = rest.map(p => {
                 const sala = salaMap[String(p.id)] || '';

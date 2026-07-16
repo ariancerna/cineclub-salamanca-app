@@ -12,9 +12,9 @@ suite: los casos buscan dónde se puede romper, no confirmar que funciona.
 
 | Nivel | Qué verifica | Cómo | Cantidad |
 |---|---|---|---|
-| Unitario | Una clase aislada, con sus dependencias reemplazadas por mocks | JUnit 5 + Mockito | 63 |
+| Unitario | Una clase aislada, con sus dependencias reemplazadas por mocks | JUnit 5 + Mockito | 64 |
 | Integración | Varios componentes reales juntos, incluyendo filtros y base de datos | `@SpringBootTest` + MockMvc + H2 | 16 |
-| Total | | | 79 |
+| Total | | | 80 |
 
 ### Tipos
 
@@ -93,7 +93,7 @@ tenía 22 pruebas y todas pasaban, pero dejaba la mitad de la lógica de negocio
 | Momento | Pruebas | Cobertura de servicios |
 |---|---:|---:|
 | Inicial | 22 | 49% |
-| Actual | 79 | 100% |
+| Actual | 80 | 100% |
 
 Huecos que encontramos y cerramos:
 
@@ -135,13 +135,14 @@ contador. La cobertura dice qué código se ejecutó, no si las aserciones compr
 
 ## 4. Casos de prueba
 
-### 4.1 `ReservaServiceTest` (17 casos)
+### 4.1 `ReservaServiceTest` (18 casos)
 
 Concentra las reglas de negocio más importantes.
 
 | Caso | Qué verifica |
 |---|---|
 | Reserva exitosa retorna código y datos completos | Camino feliz |
+| No se puede reservar una función que ya se proyectó | La función debe estar pendiente |
 | No se puede reservar si el aforo está agotado | `aforoDisponible <= 0` da 409 |
 | Un usuario no puede reservar dos veces la misma función | Unicidad usuario-función |
 | No se puede reservar una butaca ya ocupada | Unicidad butaca-función |
@@ -237,8 +238,8 @@ El reporte HTML queda en `backend/target/site/jacoco/index.html`.
 [INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0 -- FuncionServiceTest
 [INFO] Tests run: 9,  Failures: 0, Errors: 0, Skipped: 0 -- PeliculaServiceTest
 [INFO] Tests run: 9,  Failures: 0, Errors: 0, Skipped: 0 -- ProductoServiceTest
-[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0 -- ReservaServiceTest
-[INFO] Tests run: 79, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 18, Failures: 0, Errors: 0, Skipped: 0 -- ReservaServiceTest
+[INFO] Tests run: 80, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
@@ -278,7 +279,7 @@ ocurría en `ReservaResponse.from()`, que recorre `getUsuario()`, `getFuncion()`
 
 **Por qué la suite no lo detectó.** Los perfiles `dev` y `test` no desactivan
 `open-in-view`, así que mantienen la sesión abierta durante toda la petición y el código
-funciona. Las 79 pruebas pasaban en verde con el defecto presente. Es un recordatorio de que
+funciona. Las pruebas pasaban todas en verde con el defecto presente. Es un recordatorio de que
 una suite verde solo garantiza lo que la suite ejercita, y de que la configuración de
 producción también es código.
 
@@ -291,6 +292,45 @@ configuración de producción tendría más riesgo que beneficio a este tamaño.
 
 **Mejora pendiente.** Ejecutar `SeguridadIntegrationTest` también con el perfil `prod`
 habría detectado esto. Hoy las pruebas de integración solo usan `test`.
+
+### Defecto encontrado al usar la aplicación: zona horaria del contenedor
+
+Al abrir la cartelera, una función programada para hoy a las 19:30 aparecía como pasada
+siendo las 18:04 en Lima.
+
+**Causa.** El contenedor corría en UTC, cinco horas por delante. Las fechas de las funciones
+se guardan como `LocalDateTime`, es decir sin zona horaria, y se sembraron desde una JVM en
+hora de Lima. Al comparar `fechaHora` contra `LocalDateTime.now()` dentro del contenedor, la
+aplicación usaba la hora UTC.
+
+**Impacto.** Toda función desaparecía de la cartelera cinco horas antes de lo debido. Para un
+cine es grave: una proyección de las 19:30 dejaba de poder reservarse a las 14:30.
+
+**Corrección.** Se fija `TZ=America/Lima` en el `Dockerfile` y en el `docker-compose.yml`.
+En Alpine hace falta además instalar el paquete `tzdata`: sin él la JVM ignora la variable y
+se queda en UTC. Tras el cambio el contenedor reporta `-05` y la función de las 19:30 vuelve
+a ser reservable.
+
+**Mejora pendiente.** La solución de fondo sería guardar las fechas con zona
+(`timestamptz` y `ZonedDateTime`) en lugar de depender del reloj del contenedor. Para un
+cineclub de una sola sede es suficiente fijar la zona, pero un despliegue en otra región lo
+volvería a romper.
+
+### Defecto encontrado al usar la aplicación: se podía reservar una función ya proyectada
+
+`POST /api/reservas` con el id de una función pasada devolvía **201 Created**.
+
+**Causa.** `ReservaService.crear()` validaba el aforo, la reserva duplicada y la butaca
+ocupada, pero no comprobaba que la función siguiera pendiente.
+
+**Impacto.** Un espectador podía reservar una butaca para una proyección que ya ocurrió.
+Además ensuciaba los datos: esas reservas descuentan aforo de funciones pasadas y
+distorsionan las métricas de asistencia.
+
+**Corrección.** Se añade la validación en `ReservaService.crear()` y el caso
+`crear_debeLanzarExcepcion_cuandoFuncionYaPaso` para que quede fijado. La cartelera además
+solo lista películas con función futura, pero la regla se valida en el servidor: el filtro
+del frontend es comodidad, no un control de seguridad.
 
 ## 7. Limitaciones
 

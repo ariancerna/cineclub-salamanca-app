@@ -20,7 +20,7 @@ flowchart LR
 | Fase | Qué pasa en este proyecto |
 |---|---|
 | `compile` | Compila con Java 21 |
-| `test` | Corre las 79 pruebas (surefire) |
+| `test` | Corre las 80 pruebas (surefire) |
 | `package` | Genera `backend-1.0.0.jar` y el JAR de Javadoc |
 | `verify` | Genera el reporte JaCoCo y falla si la cobertura baja del 70% |
 | `install` | Copia el artefacto al repositorio local `~/.m2` |
@@ -123,7 +123,7 @@ No se despliega nada que no pase la suite:
 
 ```bash
 cd backend
-./mvnw clean verify        # 79 pruebas + umbral de cobertura
+./mvnw clean verify        # 80 pruebas + umbral de cobertura
 ./mvnw verify -Pseguridad  # dependencias (requiere NVD_API_KEY)
 cd ..
 ```

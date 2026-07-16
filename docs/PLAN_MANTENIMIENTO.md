@@ -258,7 +258,7 @@ Criterio para actualizar:
 | Versión menor (3.4 a 3.5) | Evaluar cambios y probar |
 | Versión mayor (3.x a 4.x) | Planificar, puede traer incompatibilidades |
 
-Después de cualquier actualización va un `./mvnw clean verify`. Las 79 pruebas son la red
+Después de cualquier actualización va un `./mvnw clean verify`. Las 80 pruebas son la red
 que detecta si una dependencia nueva rompió algo.
 
 ## 9. Recuperación ante desastres
