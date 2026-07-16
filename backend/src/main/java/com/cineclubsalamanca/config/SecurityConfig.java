@@ -1,6 +1,8 @@
 package com.cineclubsalamanca.config;
 
+import com.cineclubsalamanca.security.EntradaNoAutenticada;
 import com.cineclubsalamanca.security.JwtAuthFilter;
+import com.cineclubsalamanca.security.SinPermisos;
 import com.cineclubsalamanca.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +30,8 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsServiceImpl userDetailsService;
+    private final EntradaNoAutenticada entradaNoAutenticada;
+    private final SinPermisos sinPermisos;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -36,12 +40,21 @@ public class SecurityConfig {
             .headers(h -> h.frameOptions(f -> f.disable()))
             .cors(cors -> {})
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // Distingue 401 (falta autenticacion) de 403 (autenticado sin permisos)
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(entradaNoAutenticada)
+                .accessDeniedHandler(sinPermisos)
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/peliculas/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/funciones/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/h2-console/**").permitAll()
+                // Sondas de salud: publicas para que el balanceador y Docker puedan consultarlas
+                .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                // El resto de la telemetria (metricas, loggers) solo para administradores
+                .requestMatchers("/actuator/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())

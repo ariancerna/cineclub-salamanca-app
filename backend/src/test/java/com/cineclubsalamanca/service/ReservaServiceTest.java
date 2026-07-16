@@ -1,6 +1,7 @@
 package com.cineclubsalamanca.service;
 
 import com.cineclubsalamanca.dto.reserva.CrearReservaRequest;
+import com.cineclubsalamanca.dto.reserva.ItemMinibarRequest;
 import com.cineclubsalamanca.dto.reserva.ReservaResponse;
 import com.cineclubsalamanca.entity.*;
 import com.cineclubsalamanca.repository.*;
@@ -8,10 +9,12 @@ import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +31,7 @@ class ReservaServiceTest {
     @Mock private ReservaRepository reservaRepository;
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private FuncionService funcionService;
+    @Mock private ProductoService productoService;
     @Mock private FuncionRepository funcionRepository;
 
     @InjectMocks
@@ -225,5 +229,172 @@ class ReservaServiceTest {
         List<String> resultado = reservaService.butacasOcupadas(99L);
 
         assertThat(resultado).isEmpty();
+    }
+
+    @Test
+    @DisplayName("El subtotal del minibar es precio por cantidad para cada producto")
+    void crear_debeCalcularSubtotalesDelMinibar() {
+        Usuario usuario = usuarioBase();
+        Funcion funcion = funcionBase();
+
+        Producto canchita = Producto.builder().id(1L).nombre("Canchita").precio(new BigDecimal("8.50")).build();
+        Producto gaseosa = Producto.builder().id(2L).nombre("Gaseosa").precio(new BigDecimal("5.00")).build();
+
+        CrearReservaRequest req = new CrearReservaRequest(1L, "A-1", List.of(
+                new ItemMinibarRequest(1L, 2),
+                new ItemMinibarRequest(2L, 3)));
+
+        when(usuarioRepository.findByEmail("joan@test.com")).thenReturn(Optional.of(usuario));
+        when(funcionService.buscarPorId(1L)).thenReturn(funcion);
+        when(reservaRepository.existsByUsuarioIdAndFuncionId(1L, 1L)).thenReturn(false);
+        when(reservaRepository.findByNumeroButacaAndFuncionId("A-1", 1L)).thenReturn(Optional.empty());
+        when(productoService.buscarPorId(1L)).thenReturn(canchita);
+        when(productoService.buscarPorId(2L)).thenReturn(gaseosa);
+        when(funcionRepository.save(any(Funcion.class))).thenReturn(funcion);
+        when(reservaRepository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        reservaService.crear("joan@test.com", req);
+
+        ArgumentCaptor<Reserva> captor = ArgumentCaptor.forClass(Reserva.class);
+        verify(reservaRepository).save(captor.capture());
+        List<DetalleMinibar> detalles = captor.getValue().getDetallesMinibar();
+
+        assertThat(detalles).hasSize(2);
+        // 8.50 x 2 = 17.00
+        assertThat(detalles.get(0).getSubtotal()).isEqualByComparingTo("17.00");
+        assertThat(detalles.get(0).getCantidad()).isEqualTo(2);
+        // 5.00 x 3 = 15.00
+        assertThat(detalles.get(1).getSubtotal()).isEqualByComparingTo("15.00");
+        assertThat(detalles.get(1).getProducto().getNombre()).isEqualTo("Gaseosa");
+    }
+
+    @Test
+    @DisplayName("Una reserva sin minibar no consulta el catálogo de productos")
+    void crear_noDebeConsultarProductos_cuandoNoHayItemsMinibar() {
+        Usuario usuario = usuarioBase();
+        Funcion funcion = funcionBase();
+        CrearReservaRequest req = new CrearReservaRequest(1L, "A-1", null);
+
+        when(usuarioRepository.findByEmail("joan@test.com")).thenReturn(Optional.of(usuario));
+        when(funcionService.buscarPorId(1L)).thenReturn(funcion);
+        when(reservaRepository.existsByUsuarioIdAndFuncionId(1L, 1L)).thenReturn(false);
+        when(reservaRepository.findByNumeroButacaAndFuncionId("A-1", 1L)).thenReturn(Optional.empty());
+        when(funcionRepository.save(any(Funcion.class))).thenReturn(funcion);
+        when(reservaRepository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        reservaService.crear("joan@test.com", req);
+
+        verifyNoInteractions(productoService);
+    }
+
+    @Test
+    @DisplayName("Crear una reserva descuenta una butaca del aforo disponible")
+    void crear_debeDescontarAforoDisponible() {
+        Usuario usuario = usuarioBase();
+        Funcion funcion = funcionBase();
+        int aforoInicial = funcion.getAforoDisponible();
+        CrearReservaRequest req = new CrearReservaRequest(1L, "A-1", Collections.emptyList());
+
+        when(usuarioRepository.findByEmail("joan@test.com")).thenReturn(Optional.of(usuario));
+        when(funcionService.buscarPorId(1L)).thenReturn(funcion);
+        when(reservaRepository.existsByUsuarioIdAndFuncionId(1L, 1L)).thenReturn(false);
+        when(reservaRepository.findByNumeroButacaAndFuncionId("A-1", 1L)).thenReturn(Optional.empty());
+        when(funcionRepository.save(any(Funcion.class))).thenReturn(funcion);
+        when(reservaRepository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        reservaService.crear("joan@test.com", req);
+
+        assertThat(funcion.getAforoDisponible()).isEqualTo(aforoInicial - 1);
+    }
+
+    @Test
+    @DisplayName("El código de reserva generado usa el prefijo SLM- del cineclub")
+    void crear_debeGenerarCodigoConPrefijoSLM() {
+        Usuario usuario = usuarioBase();
+        Funcion funcion = funcionBase();
+        CrearReservaRequest req = new CrearReservaRequest(1L, "A-1", Collections.emptyList());
+
+        when(usuarioRepository.findByEmail("joan@test.com")).thenReturn(Optional.of(usuario));
+        when(funcionService.buscarPorId(1L)).thenReturn(funcion);
+        when(reservaRepository.existsByUsuarioIdAndFuncionId(1L, 1L)).thenReturn(false);
+        when(reservaRepository.findByNumeroButacaAndFuncionId("A-1", 1L)).thenReturn(Optional.empty());
+        when(funcionRepository.save(any(Funcion.class))).thenReturn(funcion);
+        when(reservaRepository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReservaResponse response = reservaService.crear("joan@test.com", req);
+
+        // El código va en la columna codigo_reserva, de 12 caracteres: "SLM-" + 8 hexadecimales
+        assertThat(response.codigoReserva()).startsWith("SLM-").hasSize(12);
+    }
+
+    @Test
+    @DisplayName("listarMisReservas devuelve solo las reservas del usuario indicado")
+    void listarMisReservas_debeRetornarReservasDelUsuario() {
+        Usuario usuario = usuarioBase();
+        Reserva reserva = Reserva.builder()
+                .codigoReserva("SLM-ABC123")
+                .usuario(usuario)
+                .funcion(funcionBase())
+                .numeroButaca("A-1")
+                .fechaEmision(LocalDateTime.now())
+                .detallesMinibar(Collections.emptyList())
+                .build();
+
+        when(usuarioRepository.findByEmail("joan@test.com")).thenReturn(Optional.of(usuario));
+        when(reservaRepository.findByUsuarioIdOrderByFechaEmisionDesc(1L)).thenReturn(List.of(reserva));
+
+        List<ReservaResponse> resultado = reservaService.listarMisReservas("joan@test.com");
+
+        assertThat(resultado).hasSize(1);
+        assertThat(resultado.get(0).codigoReserva()).isEqualTo("SLM-ABC123");
+    }
+
+    @Test
+    @DisplayName("listarMisReservas lanza excepción si el email no corresponde a un usuario")
+    void listarMisReservas_debeLanzarExcepcion_cuandoUsuarioNoExiste() {
+        when(usuarioRepository.findByEmail("fantasma@test.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reservaService.listarMisReservas("fantasma@test.com"))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("Usuario no encontrado");
+    }
+
+    @Test
+    @DisplayName("obtenerPorCodigo devuelve la reserva correspondiente al código")
+    void obtenerPorCodigo_debeRetornarReserva_cuandoExiste() {
+        Reserva reserva = Reserva.builder()
+                .codigoReserva("SLM-ABC123")
+                .usuario(usuarioBase())
+                .funcion(funcionBase())
+                .numeroButaca("D-4")
+                .fechaEmision(LocalDateTime.now())
+                .detallesMinibar(Collections.emptyList())
+                .build();
+
+        when(reservaRepository.findById("SLM-ABC123")).thenReturn(Optional.of(reserva));
+
+        ReservaResponse resultado = reservaService.obtenerPorCodigo("SLM-ABC123");
+
+        assertThat(resultado.numeroButaca()).isEqualTo("D-4");
+    }
+
+    @Test
+    @DisplayName("listarPorFuncion devuelve las reservas de una función para el panel admin")
+    void listarPorFuncion_debeRetornarReservasDeLaFuncion() {
+        Reserva reserva = Reserva.builder()
+                .codigoReserva("SLM-ABC123")
+                .usuario(usuarioBase())
+                .funcion(funcionBase())
+                .numeroButaca("A-1")
+                .fechaEmision(LocalDateTime.now())
+                .detallesMinibar(Collections.emptyList())
+                .build();
+
+        when(reservaRepository.findByFuncionIdOrderByFechaEmisionAsc(1L)).thenReturn(List.of(reserva));
+
+        List<ReservaResponse> resultado = reservaService.listarPorFuncion(1L);
+
+        assertThat(resultado).hasSize(1);
+        assertThat(resultado.get(0).usuarioNombre()).isEqualTo("Joan Pelayo");
     }
 }

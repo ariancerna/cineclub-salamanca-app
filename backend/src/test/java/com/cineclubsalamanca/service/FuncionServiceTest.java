@@ -53,6 +53,78 @@ class FuncionServiceTest {
     }
 
     @Test
+    @DisplayName("listarTodas devuelve también las funciones ya proyectadas, para el panel admin")
+    void listarTodas_debeIncluirFuncionesPasadas() {
+        Pelicula p = peliculaBase();
+        Funcion pasada = Funcion.builder()
+                .id(2L).pelicula(p).fechaHora(LocalDateTime.now().minusDays(5))
+                .aforoMaximo(20).aforoDisponible(0).sala("Sala Norte").build();
+
+        when(funcionRepository.findAll()).thenReturn(List.of(funcionBase(p), pasada));
+
+        List<FuncionResponse> resultado = funcionService.listarTodas();
+
+        assertThat(resultado).hasSize(2);
+        assertThat(resultado).extracting(FuncionResponse::id).containsExactly(1L, 2L);
+    }
+
+    @Test
+    @DisplayName("obtenerPorId devuelve la función mapeada a DTO")
+    void obtenerPorId_debeRetornarFuncion_cuandoExiste() {
+        when(funcionRepository.findById(1L)).thenReturn(Optional.of(funcionBase(peliculaBase())));
+
+        FuncionResponse resultado = funcionService.obtenerPorId(1L);
+
+        assertThat(resultado.id()).isEqualTo(1L);
+        assertThat(resultado.pelicula().titulo()).isEqualTo("Ciudadano Kane");
+    }
+
+    @Test
+    @DisplayName("obtenerPorId lanza excepción cuando la función no existe")
+    void obtenerPorId_debeLanzarExcepcion_cuandoNoExiste() {
+        when(funcionRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> funcionService.obtenerPorId(99L))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("Función no encontrada: 99");
+    }
+
+    @Test
+    @DisplayName("actualizar reprograma la función con la nueva película y fecha")
+    void actualizar_debeModificarFuncion_cuandoExiste() {
+        Pelicula original = peliculaBase();
+        Funcion existente = funcionBase(original);
+
+        Pelicula nueva = Pelicula.builder().id(2L).titulo("Vértigo").director("Hitchcock").build();
+        LocalDateTime nuevaFecha = LocalDateTime.now().plusDays(10);
+        FuncionRequest req = new FuncionRequest(2L, nuevaFecha, 30);
+
+        when(funcionRepository.findById(1L)).thenReturn(Optional.of(existente));
+        when(peliculaService.buscarPorId(2L)).thenReturn(nueva);
+        when(funcionRepository.save(any(Funcion.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        FuncionResponse resultado = funcionService.actualizar(1L, req);
+
+        assertThat(resultado.pelicula().titulo()).isEqualTo("Vértigo");
+        assertThat(resultado.aforoMaximo()).isEqualTo(30);
+        assertThat(existente.getFechaHora()).isEqualTo(nuevaFecha);
+        verify(funcionRepository).save(existente);
+    }
+
+    @Test
+    @DisplayName("actualizar sobre un id inexistente no consulta la película ni persiste")
+    void actualizar_debeLanzarExcepcion_cuandoNoExiste() {
+        FuncionRequest req = new FuncionRequest(1L, LocalDateTime.now().plusDays(1), 20);
+        when(funcionRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> funcionService.actualizar(99L, req))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        verify(funcionRepository, never()).save(any());
+        verifyNoInteractions(peliculaService);
+    }
+
+    @Test
     @DisplayName("Crear función guarda los datos correctamente")
     void crear_debeRetornarFuncion_cuandoDatosValidos() {
         Pelicula p = peliculaBase();
