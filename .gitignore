@@ -1,22 +1,32 @@
-# Maven / Spring Boot
+# Java/Maven build output
 backend/target/
+**/target/
+*.class
 backend/.mvn/wrapper/maven-wrapper.jar
-backend/*.log
 
-# IDE
+# Environment files
+.env
+.env.local
+
+# Logs y respaldos generados en tiempo de ejecucion
+logs/
+backups/
+**/logs/
+
+# IDEs & Editor configurations
 .idea/
-.vscode/
 *.iml
-*.iws
-*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
 
-# OS
+# OS generated files
 .DS_Store
 Thumbs.db
 
 # Scripts locales
-backend/iniciar.cmd
-backend/test.cmd
 iniciar-con-docker.cmd
 
 # Documentación interna
@@ -24,7 +34,3 @@ documentacion-tecnica.html
 
 # Docker volumes
 cineclub_data/
-
-# Environment variables
-.env
-.env.local
