@@ -50,6 +50,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/funciones/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/h2-console/**").permitAll()
+                // Sin esto, el forward a /error de cualquier excepcion se rechaza con 401 y
+                // enmascara el error real. El detalle no se filtra: prod usa
+                // server.error.include-stacktrace=never e include-message=never.
+                .requestMatchers("/error").permitAll()
                 // El balanceador y Docker consultan la salud sin poder autenticarse
                 .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                 .requestMatchers("/actuator/**").hasRole("ADMIN")

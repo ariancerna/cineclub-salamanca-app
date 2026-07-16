@@ -151,10 +151,22 @@ Prueba funcional mínima:
 2. Registrar un usuario y reservar una butaca.
 3. Entrar como administrador y confirmar el ingreso con el código emitido.
 
+Resultado de la última ejecución de este procedimiento: los tres contenedores levantaron,
+el backend arrancó con el perfil `prod` en 11,3 segundos, `ddl-auto=validate` pasó contra el
+esquema existente, y una reserva de prueba con minibar se creó correctamente (`SLM-77DC0E7F`,
+aforo 32 a 31). El detalle está en el [informe de pruebas](INFORME_PRUEBAS.md).
+
+Este despliegue destapó un defecto que la suite no veía: `open-in-view=false` en el perfil
+`prod` rompía la cartelera con `LazyInitializationException`. Está documentado en la sección
+6 del informe de pruebas. Sirve de aviso: **la configuración de producción hay que probarla
+ejecutándola**, porque no la cubre ninguna prueba unitaria.
+
 ### 4.5 Esquema en el primer despliegue
 
-Como `prod` usa `ddl-auto=validate`, no crea las tablas: espera encontrarlas. En un servidor
-nuevo hay que crearlas antes. Dos opciones:
+Como `prod` usa `ddl-auto=validate`, no crea las tablas: espera encontrarlas. Si la base ya
+tiene el esquema (por ejemplo tras una corrida previa en `dev`, que es como se verificó),
+arranca sin problema. En un servidor nuevo y con la base vacía hay que crearlas antes. Dos
+opciones:
 
 ```bash
 # A — restaurar un respaldo de desarrollo (recomendada)

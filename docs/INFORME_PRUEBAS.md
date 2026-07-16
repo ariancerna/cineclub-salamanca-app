@@ -242,18 +242,55 @@ El reporte HTML queda en `backend/target/site/jacoco/index.html`.
 [INFO] BUILD SUCCESS
 ```
 
-### Verificación con la aplicación corriendo
+### Verificación con el despliegue real
 
-Además de la suite, levantamos el JAR y probamos el sistema de punta a punta:
+Además de la suite, levantamos el stack completo con `docker compose --profile completo up
+-d --build`: PostgreSQL 15, el backend con perfil `prod` y nginx sirviendo el frontend.
 
 | Comprobación | Resultado |
 |---|---|
+| Arranque del backend con perfil `prod` | `Started CineclubSalamancaApplication in 11.32 seconds` |
+| `ddl-auto=validate` contra el esquema existente | Pasa, sin errores de validación |
 | `/actuator/health` sin autenticar | `{"status":"UP"}`, sin exponer componentes |
 | `/actuator/metrics` sin token | HTTP 401 |
-| `/actuator/health` como admin | `cartelera: UP`, `funcionesFuturas: 8` |
-| Reserva real con minibar | Código `SLM-6C566857`, aforo 32 a 31 |
-| Métricas después de reservar | `reservas.totales` 0 a 1, `aforo.disponible` 256 a 255 |
-| Archivo de log | `logs/cineclub.log` con el formato configurado |
+| `/actuator/health` como admin | `cartelera: UP`, leyendo PostgreSQL real |
+| Frontend en nginx | HTTP 200 |
+| Reserva real con minibar | Código `SLM-77DC0E7F`, aforo 32 a 31, subtotal 2 × 35.00 = 70.00 |
+| `healthcheck.sh` | `OK: la aplicación responde UP`, salida 0 |
+| `backup.sh` | Volcado de 4.0K generado, retención aplicada |
+| Restauración sobre base de ensayo | Las 6 tablas y la reserva `SLM-77DC0E7F` se recuperan |
+| `restore.sh --ultimo` | Selecciona el último respaldo, pide confirmación y restaura |
+| Datos tras restaurar | 1 reserva, 8 películas, 8 funciones, 3 usuarios. La aplicación sigue UP |
+
+Este despliegue es lo que destapó el defecto que se describe a continuación, y que ninguna
+prueba de la suite podía encontrar.
+
+### Defecto encontrado solo al desplegar: LazyInitializationException
+
+Al abrir la cartelera contra el stack real, `GET /api/funciones` fallaba con
+`LazyInitializationException: Could not initialize proxy [Pelicula#5] - no session`.
+
+**Causa.** El perfil `prod` traía `spring.jpa.open-in-view=false`. Sin *open session in
+view*, la sesión de Hibernate se cierra al salir del repositorio, y los DTO se construyen
+después: `FuncionResponse.from()` accede a `funcion.getPelicula()`, que es `LAZY`. Lo mismo
+ocurría en `ReservaResponse.from()`, que recorre `getUsuario()`, `getFuncion()` y
+`getDetallesMinibar()`. En la práctica, toda la API de reservas quedaba rota en producción.
+
+**Por qué la suite no lo detectó.** Los perfiles `dev` y `test` no desactivan
+`open-in-view`, así que mantienen la sesión abierta durante toda la petición y el código
+funciona. Las 79 pruebas pasaban en verde con el defecto presente. Es un recordatorio de que
+una suite verde solo garantiza lo que la suite ejercita, y de que la configuración de
+producción también es código.
+
+**Corrección.** Se restauró `open-in-view` a su valor por defecto. Desactivarlo es la
+práctica recomendada, porque mantiene la conexión ocupada durante toda la petición, pero
+exige que las consultas traigan las relaciones necesarias con `@EntityGraph` o `JOIN FETCH`
+en `FuncionRepository` y `ReservaRepository`. Queda documentado como trabajo futuro: es la
+mejora correcta, pero introducirla sin pruebas de integración que corran con la
+configuración de producción tendría más riesgo que beneficio a este tamaño.
+
+**Mejora pendiente.** Ejecutar `SeguridadIntegrationTest` también con el perfil `prod`
+habría detectado esto. Hoy las pruebas de integración solo usan `test`.
 
 ## 7. Limitaciones
 

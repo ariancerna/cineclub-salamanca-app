@@ -210,6 +210,28 @@ está declarada con `<scope>runtime</scope>` y solo se usa en `dev` y `test`.
 con `@Profile("dev")`, para que la excepción ni siquiera exista en el artefacto de
 producción.
 
+### OBS-06: los errores 500 se enmascaraban como 401 (severidad baja, corregida)
+
+Al desplegar con Docker por primera vez, `GET /api/funciones` devolvía 401 con el mensaje
+"Credenciales ausentes o inválidas", pese a que `SecurityConfig` declara esa ruta pública
+igual que `/api/peliculas` y `/api/productos`, que sí respondían 200.
+
+**Causa.** El endpoint lanzaba en realidad un error 500. Spring hace un forward interno a
+`/error`, y esa ruta no estaba permitida en la cadena de filtros, así que caía en
+`anyRequest().authenticated()` y el `AuthenticationEntryPoint` la convertía en 401. El
+efecto secundario es que **cualquier excepción no controlada aparecía como un problema de
+autenticación**, lo que ocultaba la causa real.
+
+**Impacto.** No es un fallo de seguridad en sí, pero sí de diagnóstico: enmascara los
+errores y manda al desarrollador a investigar la pista equivocada. Apareció como
+consecuencia de añadir el `AuthenticationEntryPoint` de OBS-01.
+
+**Corrección.** Se permite `/error` en `SecurityConfig`. No filtra información: el perfil
+`prod` ya usa `server.error.include-stacktrace=never` e `include-message=never`.
+
+**Verificación.** El error real quedó visible y se pudo corregir (ver la sección 6 del
+[informe de pruebas](INFORME_PRUEBAS.md)).
+
 ## 5. Análisis de dependencias
 
 OWASP Dependency-Check compara cada dependencia contra la base NVD:
@@ -259,6 +281,7 @@ peticiones con límite estricto y puede tardar más de 30 minutos.
 | OBS-03: secreto JWT por defecto | Alta | Mitigada, requiere acción al desplegar |
 | OBS-04: sin límite de intentos | Media | Aceptada, trabajo futuro |
 | OBS-05: consola H2 en dev | Baja | Mitigada por perfil |
+| OBS-06: errores 500 enmascarados como 401 | Baja | Corregida |
 
 Las dos observaciones corregidas las encontraron las pruebas de integración automatizadas y
 no una revisión manual. Vale la pena remarcarlo porque ninguna prueba unitaria las hubiera

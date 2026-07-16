@@ -154,14 +154,34 @@ Salida:
 [2026-07-16 02:00:03] Respaldos vigentes: 30
 ```
 
-### 5.3 Comprobación de integridad
+### 5.3 Verificación realizada
+
+El ciclo completo se probó contra el stack desplegado, no solo sobre el papel:
+
+| Paso | Resultado |
+|---|---|
+| `backup.sh` sobre PostgreSQL en Docker | Volcado de 4.0K generado, retención aplicada |
+| Contenido del volcado | 12 sentencias SQL (esquema y datos) |
+| Restauración sobre base de ensayo | Las 6 tablas y la reserva `SLM-77DC0E7F` se recuperan |
+| `restore.sh --ultimo` | Selecciona el respaldo más reciente, pide confirmación y restaura |
+| Datos tras restaurar | 1 reserva, 8 películas, 8 funciones, 3 usuarios |
+| Aplicación tras restaurar | `healthcheck.sh` responde UP |
+
+La prueba de restauración se hizo sobre una base de ensayo (`cineclub_ensayo`) y no sobre la
+real, que es justamente el procedimiento del punto 5.6.
+
+Una limitación del script que conviene conocer: `restore.sh` hace `source .env`, así que la
+base destino no se puede cambiar con una variable de entorno. Para restaurar en otro sitio
+hay que apuntar a otro contenedor con `CONTENEDOR_DB`, que es lo que hace el crontab.
+
+### 5.4 Comprobación de integridad
 
 El script verifica que el volcado no haya quedado vacío, y si lo está borra el archivo y
 sale con error. Sin ese control, una falla de `pg_dump` dejaría un `.sql.gz` de 0 bytes con
 pinta de respaldo válido, y con el tiempo la retención iría borrando los buenos hasta dejar
 solo archivos inservibles. Es la forma más traicionera en que falla un sistema de respaldos.
 
-### 5.4 Restauración
+### 5.5 Restauración
 
 ```bash
 ./scripts/restore.sh --ultimo                                  # el más reciente
@@ -171,13 +191,13 @@ solo archivos inservibles. Es la forma más traicionera en que falla un sistema 
 El script pide escribir `restaurar` para confirmar, porque sobrescribe la base actual y no
 hay vuelta atrás.
 
-### 5.5 Prueba mensual de restauración
+### 5.6 Prueba mensual de restauración
 
 Un respaldo que nunca se restauró no sirve de garantía, porque nadie sabe si funciona. El
 día 15 de cada mes cron restaura el último volcado sobre una base de ensayo
 (`cineclub-db-ensayo`) para comprobar que el procedimiento anda, sin tocar producción.
 
-### 5.6 Regla 3-2-1 (pendiente)
+### 5.7 Regla 3-2-1 (pendiente)
 
 La práctica recomendada es tener 3 copias, en 2 medios distintos, y 1 fuera del sitio. Hoy
 tenemos las copias locales, pero todas viven en el mismo servidor: si se rompe el disco se
@@ -261,7 +281,7 @@ sistema con pagos necesitaría números muy distintos.
 
 ## 10. Limitaciones
 
-1. **Respaldos sin copia externa** (ver 5.6): si se rompe el disco se pierden la base y sus
+1. **Respaldos sin copia externa** (ver 5.7): si se rompe el disco se pierden la base y sus
    respaldos.
 2. **Sin migraciones versionadas.** Un cambio de entidad puede dejar el esquema restaurado
    incompatible con el código. Flyway lo resolvería.
