@@ -1,7 +1,18 @@
+# ==========================================================================
+#  CineClub Salamanca — Orquestacion de servicios
+# --------------------------------------------------------------------------
+#  Desarrollo (solo base de datos, backend desde el IDE):
+#      docker compose up -d db
+#
+#  Despliegue completo (base de datos + backend + frontend):
+#      docker compose --profile completo up -d --build
+# ==========================================================================
+
 services:
-  postgres:
-    image: postgres:16-alpine
+  db:
+    image: postgres:15-alpine
     container_name: cineclub-db
+    restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -9,8 +20,53 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
-      - cineclub_data:/var/lib/postgresql/data
-    restart: unless-stopped
+      - postgres_data:/var/lib/postgresql/data
+    # El backend espera a que la base acepte conexiones, no solo a que arranque
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: cineclub-salamanca/backend:1.0.0
+    container_name: cineclub-backend
+    profiles: ["completo"]
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    volumes:
+      # Los logs se conservan fuera del contenedor para poder auditarlos
+      - ./logs:/app/logs
+
+  frontend:
+    image: nginx:1.27-alpine
+    container_name: cineclub-frontend
+    profiles: ["completo"]
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
 
 volumes:
-  cineclub_data:
+  postgres_data:

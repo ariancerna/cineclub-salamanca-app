@@ -1,4 +1,9 @@
-const BASE_URL = 'http://localhost:8080/api';
+// La URL del backend se deriva del host desde el que se sirve la pagina, para que el
+// mismo frontend funcione en local y en el servidor desplegado. Puede sobrescribirse
+// definiendo window.CINECLUB_API_URL antes de cargar este script.
+const API_PORT = '8080';
+const BASE_URL = window.CINECLUB_API_URL
+    || `${window.location.protocol}//${window.location.hostname}:${API_PORT}/api`;
 const AUTH_KEY = 'cc_auth';
 
 function getAuthData() {
