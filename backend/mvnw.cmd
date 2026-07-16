@@ -2,6 +2,8 @@
 setlocal
 
 set DIRNAME=%~dp0
+set BASEDIR=%DIRNAME%
+if "%BASEDIR:~-1%"=="\" set BASEDIR=%BASEDIR:~0,-1%
 set WRAPPER_JAR=%DIRNAME%.mvn\wrapper\maven-wrapper.jar
 set WRAPPER_LAUNCHER=org.apache.maven.wrapper.MavenWrapperMain
 set JAVA_EXE=%ProgramFiles%\Microsoft\jdk-21.0.11.10-hotspot\bin\java.exe
@@ -11,14 +13,19 @@ if not exist "%JAVA_EXE%" (
 )
 
 if not exist "%JAVA_EXE%" (
-    echo ERROR: No se encontro java.exe. Asegurate de tener Java 21 instalado.
-    exit /b 1
+    where java >nul 2>nul
+    if errorlevel 1 (
+        echo ERROR: No se encontro java.exe. Asegurate de tener Java 21 instalado.
+        exit /b 1
+    ) else (
+        set JAVA_EXE=java
+    )
 )
 
 "%JAVA_EXE%" ^
-  "-Dmaven.multiModuleProjectDirectory=%DIRNAME%" ^
+  "-Dmaven.multiModuleProjectDirectory=%BASEDIR%" ^
   -classpath "%WRAPPER_JAR%" ^
-  %WRAPPER_LAUNCHER% ^
+  "%WRAPPER_LAUNCHER%" ^
   %*
 
 exit /b %ERRORLEVEL%

@@ -28,7 +28,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (peliculaRepository.count() > 0) return;
+        if (funcionRepository.count() > 0) return;
 
         usuarioRepository.save(Usuario.builder()
                 .nombre("Admin")
