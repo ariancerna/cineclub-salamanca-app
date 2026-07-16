@@ -15,9 +15,9 @@ probado. Por eso el criterio de diseño de esta suite no fue "confirmar que func
 
 | Nivel | Qué verifica | Implementación | Cantidad |
 |---|---|---|---|
-| **Unitario** | Una clase aislada, con sus dependencias sustituidas por dobles | JUnit 5 + Mockito | 53 |
+| **Unitario** | Una clase aislada, con sus dependencias sustituidas por dobles | JUnit 5 + Mockito | 63 |
 | **Integración** | Varios componentes reales colaborando, incluida la cadena de filtros y la base de datos | `@SpringBootTest` + MockMvc + H2 | 16 |
-| **Total** | | | **69** |
+| **Total** | | | **79** |
 
 ### Tipos de prueba
 
@@ -103,7 +103,7 @@ las 22 pruebas existentes pasaban todas.
 | Momento | Pruebas | Cobertura de servicios |
 |---|---:|---:|
 | Estado inicial | 22 | 49% |
-| Tras ampliar la suite | 69 | 100% |
+| Tras ampliar la suite | 79 | 100% |
 
 Los huecos detectados y cerrados:
 
@@ -113,6 +113,7 @@ Los huecos detectados y cerrados:
 | `ProductoService` sin ninguna prueba (0%) | `ProductoServiceTest` — 9 casos |
 | `ReservaService` no ejercitaba el cálculo de subtotales del minibar | 4 casos nuevos, incluido el de precio × cantidad |
 | `FuncionService` no cubría `listarTodas`, `obtenerPorId` ni `actualizar` | 5 casos nuevos |
+| `TareasMantenimiento` sin pruebas pese a corregir datos en producción | `TareasMantenimientoTest` — 10 casos |
 
 ### Umbral automatizado
 
@@ -171,7 +172,27 @@ Concentra las reglas de negocio críticas del sistema.
 | `obtenerPorCodigo` devuelve la reserva | Consulta por código | ✅ |
 | `listarPorFuncion` para el panel admin | Consulta administrativa | ✅ |
 
-### 4.2 Casos borde considerados
+### 4.2 `TareasMantenimientoTest` — 10 casos
+
+Las tareas programadas **modifican datos en producción sin supervisión humana**, así que
+merecen pruebas tanto como la lógica que sirve peticiones. La auditoría de aforo es la más
+delicada: corrige registros automáticamente, y un error de signo dejaría el aforo peor de lo
+que estaba.
+
+| Caso | Regla verificada |
+|---|---|
+| Corrige el aforo cuando el contador se desvió | `aforoMaximo − reservas` |
+| No escribe si el aforo ya es consistente | Evita escrituras inútiles |
+| Trata un aforo nulo como inconsistente | Caso borde |
+| Revisa varias funciones y corrige solo las desviadas | Aislamiento |
+| Soporta una cartelera vacía | Caso borde |
+| Purga las reservas anteriores a la retención | Política de retención |
+| No llama a `deleteAll` si no hay nada que purgar | Evita operaciones vacías |
+| El límite de purga respeta los meses configurados | Configurabilidad |
+| El reporte diario consulta reservas y aforo | Reporte de operación |
+| El reporte no falla con aforo nulo | Robustez |
+
+### 4.3 Casos borde considerados
 
 Además del camino feliz, se probaron:
 
@@ -229,14 +250,29 @@ El reporte HTML de cobertura queda en `backend/target/site/jacoco/index.html`.
 
 ```
 [INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0 -- SeguridadIntegrationTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0 -- TareasMantenimientoTest
 [INFO] Tests run: 5,  Failures: 0, Errors: 0, Skipped: 0 -- AuthServiceTest
 [INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0 -- FuncionServiceTest
 [INFO] Tests run: 9,  Failures: 0, Errors: 0, Skipped: 0 -- PeliculaServiceTest
 [INFO] Tests run: 9,  Failures: 0, Errors: 0, Skipped: 0 -- ProductoServiceTest
 [INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0 -- ReservaServiceTest
-[INFO] Tests run: 69, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 79, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
+
+### Verificación en ejecución real
+
+Además de la suite, se arrancó el JAR empaquetado y se comprobó el sistema de extremo a
+extremo:
+
+| Comprobación | Resultado |
+|---|---|
+| `/actuator/health` anónimo | `{"status":"UP"}`, sin exponer componentes |
+| `/actuator/metrics` sin token | HTTP 401 (corrección de OBS-01 confirmada) |
+| `/actuator/health` como admin | `cartelera: UP`, `funcionesFuturas: 8` |
+| Reserva real con minibar | Código `SLM-6C566857`, aforo 32 → 31 |
+| Métricas tras la reserva | `reservas.totales` 0 → 1, `aforo.disponible` 256 → 255 |
+| Archivo de log | `logs/cineclub.log` escrito con el formato configurado |
 
 ---
 

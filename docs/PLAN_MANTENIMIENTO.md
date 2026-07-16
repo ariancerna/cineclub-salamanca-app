@@ -257,7 +257,7 @@ Criterio de actualización:
 | Versión menor (3.4 → 3.5) | Evaluar cambios y probar |
 | Versión mayor (3.x → 4.x) | Planificar; puede haber cambios incompatibles |
 
-Tras cualquier actualización: `./mvnw clean verify`. Las 69 pruebas son la red que detecta
+Tras cualquier actualización: `./mvnw clean verify`. Las 79 pruebas son la red que detecta
 una regresión introducida por una dependencia nueva.
 
 ---
