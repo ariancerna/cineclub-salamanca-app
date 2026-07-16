@@ -1,12 +1,8 @@
-# ==========================================================================
-#  CineClub Salamanca - Respaldo de la base de datos PostgreSQL (Windows)
-# --------------------------------------------------------------------------
-#  Equivalente a backup.sh para entornos de desarrollo en Windows.
+# Respaldo de la base de datos en Windows. Equivalente a backup.sh.
 #
-#  Uso:  .\scripts\backup.ps1
-#  Programar con el Programador de tareas de Windows:
-#    schtasks /create /tn "CineClub Backup" /tr "powershell -File C:\ruta\scripts\backup.ps1" /sc daily /st 02:00
-# ==========================================================================
+# Uso: .\scripts\backup.ps1
+# Programar:
+#   schtasks /create /tn "CineClub Backup" /tr "powershell -File C:\ruta\scripts\backup.ps1" /sc daily /st 02:00
 
 $ErrorActionPreference = "Stop"
 
@@ -19,7 +15,6 @@ function Write-Log($Mensaje) {
     Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] $Mensaje"
 }
 
-# Carga las credenciales desde .env
 $RutaEnv = Join-Path $Raiz ".env"
 if (-not (Test-Path $RutaEnv)) {
     Write-Log "ERROR: no se encontro $RutaEnv"
@@ -52,11 +47,11 @@ $Destino = Join-Path $DirBackups "cineclub_$Marca.sql.gz"
 
 Write-Log "Iniciando respaldo de la base '$($env:POSTGRES_DB)'..."
 
-# El volcado se comprime en el propio contenedor para no depender de gzip en Windows
+# Se comprime dentro del contenedor para no depender de gzip en Windows
 docker exec $Contenedor sh -c "pg_dump --username=$($env:POSTGRES_USER) --dbname=$($env:POSTGRES_DB) --clean --if-exists | gzip" `
     | Set-Content -Path $Destino -Encoding Byte
 
-# Un volcado valido nunca queda vacio: si lo esta, el respaldo fallo silenciosamente
+# Un volcado vacio significa que pg_dump fallo sin avisar
 if (-not (Test-Path $Destino) -or (Get-Item $Destino).Length -eq 0) {
     Write-Log "ERROR: el respaldo quedo vacio. Se elimina el archivo."
     Remove-Item $Destino -ErrorAction SilentlyContinue
@@ -66,7 +61,6 @@ if (-not (Test-Path $Destino) -or (Get-Item $Destino).Length -eq 0) {
 $TamanoKB = [math]::Round((Get-Item $Destino).Length / 1KB, 1)
 Write-Log "Respaldo completado: $Destino ($TamanoKB KB)"
 
-# Politica de retencion
 $Limite = (Get-Date).AddDays(-$RetencionDias)
 $Antiguos = Get-ChildItem -Path $DirBackups -Filter "cineclub_*.sql.gz" | Where-Object { $_.LastWriteTime -lt $Limite }
 foreach ($Archivo in $Antiguos) {

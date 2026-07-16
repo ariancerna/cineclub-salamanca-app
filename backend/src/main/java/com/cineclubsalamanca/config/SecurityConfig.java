@@ -40,7 +40,6 @@ public class SecurityConfig {
             .headers(h -> h.frameOptions(f -> f.disable()))
             .cors(cors -> {})
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // Distingue 401 (falta autenticacion) de 403 (autenticado sin permisos)
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(entradaNoAutenticada)
                 .accessDeniedHandler(sinPermisos)
@@ -51,9 +50,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/funciones/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/h2-console/**").permitAll()
-                // Sondas de salud: publicas para que el balanceador y Docker puedan consultarlas
+                // El balanceador y Docker consultan la salud sin poder autenticarse
                 .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
-                // El resto de la telemetria (metricas, loggers) solo para administradores
                 .requestMatchers("/actuator/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )

@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
-# ==========================================================================
-#  CineClub Salamanca — Respaldo de la base de datos PostgreSQL
-# --------------------------------------------------------------------------
-#  Genera un volcado comprimido en backups/ y aplica la politica de retencion
-#  eliminando los respaldos mas antiguos que RETENCION_DIAS.
+# Respaldo de la base de datos. Genera un volcado comprimido en backups/ y borra los
+# anteriores a RETENCION_DIAS.
 #
-#  Uso:      ./scripts/backup.sh
-#  Cron:     0 2 * * *  /ruta/al/proyecto/scripts/backup.sh >> /var/log/cineclub-backup.log 2>&1
-# ==========================================================================
+# Uso:   ./scripts/backup.sh
+# Cron:  0 2 * * *  /ruta/al/proyecto/scripts/backup.sh >> /var/log/cineclub/backup.log 2>&1
 
 set -euo pipefail
 
@@ -16,7 +12,6 @@ DIR_BACKUPS="${RAIZ}/backups"
 RETENCION_DIAS="${RETENCION_DIAS:-30}"
 CONTENEDOR="${CONTENEDOR_DB:-cineclub-db}"
 
-# Carga las credenciales desde .env sin exponerlas en la linea de comandos
 if [[ -f "${RAIZ}/.env" ]]; then
     set -a
     # shellcheck disable=SC1091
@@ -44,14 +39,14 @@ if ! docker ps --format '{{.Names}}' | grep -q "^${CONTENEDOR}$"; then
     exit 1
 fi
 
-# --clean permite restaurar sobre una base existente sin recrearla a mano
+# --clean permite restaurar sobre una base existente
 docker exec "${CONTENEDOR}" pg_dump \
     --username="${POSTGRES_USER}" \
     --dbname="${POSTGRES_DB}" \
     --clean --if-exists \
     | gzip > "${DESTINO}"
 
-# Un volcado valido nunca queda vacio: si lo esta, el respaldo fallo silenciosamente
+# Un volcado vacio significa que pg_dump fallo sin avisar
 if [[ ! -s "${DESTINO}" ]]; then
     log "ERROR: el respaldo quedo vacio. Se elimina el archivo."
     rm -f "${DESTINO}"
@@ -61,7 +56,6 @@ fi
 TAMANO="$(du -h "${DESTINO}" | cut -f1)"
 log "Respaldo completado: ${DESTINO} (${TAMANO})"
 
-# Politica de retencion
 ELIMINADOS="$(find "${DIR_BACKUPS}" -name 'cineclub_*.sql.gz' -type f -mtime "+${RETENCION_DIAS}" -print -delete | wc -l)"
 log "Retencion (${RETENCION_DIAS} dias): ${ELIMINADOS} respaldo(s) antiguo(s) eliminado(s)."
 log "Respaldos vigentes: $(find "${DIR_BACKUPS}" -name 'cineclub_*.sql.gz' -type f | wc -l)"

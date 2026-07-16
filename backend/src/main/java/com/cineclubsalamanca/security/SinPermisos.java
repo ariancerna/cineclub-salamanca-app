@@ -12,10 +12,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 /**
- * Responde 403 cuando el usuario está autenticado pero carece del rol requerido.
- *
- * <p>El mensaje no indica qué rol haría falta, para no describir la estructura de
- * autorización a un cliente que no debería conocerla.</p>
+ * Devuelve 403 cuando el usuario está autenticado pero le falta el rol requerido.
  *
  * @see EntradaNoAutenticada
  */

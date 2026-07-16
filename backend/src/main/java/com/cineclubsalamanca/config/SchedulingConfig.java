@@ -4,10 +4,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Habilita la ejecución de tareas programadas (cron jobs) de la aplicación.
- *
- * <p>Se aísla en su propia clase para poder desactivar la programación en las pruebas
- * de integración sin tener que levantar los planificadores.</p>
+ * Habilita las tareas programadas.
  *
  * @see com.cineclubsalamanca.maintenance.TareasMantenimiento
  */

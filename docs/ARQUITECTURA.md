@@ -1,16 +1,13 @@
-# Diagramas de Arquitectura — CineClub Salamanca
+# Arquitectura del sistema
 
-**Universidad Tecnológica del Perú — Curso Integrador I: Sistemas Software**
+Proyecto CineClub Salamanca — UTP, Curso Integrador I: Sistemas Software.
 
-Este documento describe la arquitectura del sistema de reservas: la estructura MVC, la
-aplicación de los principios SOLID y la integración de la capa DAO.
-
----
+Este documento describe la estructura MVC, la capa DAO y cómo se aplican los principios
+SOLID en el código.
 
 ## 1. Visión general
 
-El sistema es una aplicación web de tres capas físicas: un frontend estático, una API REST
-sin estado y una base de datos relacional.
+La aplicación tiene tres partes: un frontend estático, una API REST y una base de datos.
 
 ```mermaid
 flowchart LR
@@ -19,7 +16,7 @@ flowchart LR
     Db[("PostgreSQL 15")]
     Mon["Actuator<br/>health · metrics"]
 
-    Nav -->|"HTTPS · JSON + JWT"| Api
+    Nav -->|"JSON + JWT"| Api
     Api -->|JDBC| Db
     Api --- Mon
 
@@ -29,16 +26,13 @@ flowchart LR
     style Mon fill:#f3e8fd,stroke:#a142f4,color:#1a1a1a
 ```
 
-La API es **sin estado** (`SessionCreationPolicy.STATELESS`): la identidad viaja en cada
-petición dentro de un token JWT, y el servidor no guarda sesión. Esto permite reiniciar o
-replicar el backend sin que los usuarios pierdan la sesión.
+La API no guarda sesión (`SessionCreationPolicy.STATELESS`). La identidad viaja en un token
+JWT en cada petición, así que el backend se puede reiniciar sin que nadie pierda la sesión.
 
----
+## 2. Capas
 
-## 2. Estructura MVC y capas
-
-El backend separa responsabilidades en capas. Cada una depende solo de la inmediatamente
-inferior, y el flujo de datos entre ellas usa DTO en lugar de entidades JPA.
+El backend está separado en capas, y cada una solo depende de la siguiente. Entre el
+controlador y la vista se usan DTO, no entidades JPA.
 
 ```mermaid
 flowchart TD
@@ -81,26 +75,24 @@ flowchart TD
     Modelo --> BD[("PostgreSQL")]
 ```
 
-**Por qué DTO y no entidades en la frontera HTTP.** Los `record` de `dto/` definen
-exactamente qué se expone. `JwtResponse` no incluye `passwordHash`, y ninguna respuesta
-arrastra las relaciones `LAZY` de JPA, lo que evita tanto fugas de datos como
-`LazyInitializationException` al serializar. La conversión se concentra en métodos
-`from(...)` dentro de cada DTO de respuesta.
+Usamos DTO en la frontera HTTP por dos motivos. El primero es de seguridad: los `record` de
+`dto/` definen exactamente qué sale, y así `JwtResponse` no puede filtrar el `passwordHash`.
+El segundo es práctico: si serializáramos las entidades directamente, Jackson intentaría
+recorrer las relaciones `LAZY` de JPA y saltaría `LazyInitializationException`. La
+conversión está en los métodos `from(...)` de cada DTO de respuesta.
 
-### Correspondencia con los paquetes
+### Paquetes
 
 | Capa MVC | Paquete | Responsabilidad |
 |---|---|---|
-| Vista | `frontend/` | Interfaz; consume la API por `fetch` |
-| Controlador | `controller/` | Rutas HTTP, códigos de estado, autorización por endpoint |
-| — | `dto/` | Contrato de entrada y salida de la API |
+| Vista | `frontend/` | Interfaz; consume la API con `fetch` |
+| Controlador | `controller/` | Rutas HTTP, códigos de estado, autorización |
+| — | `dto/` | Entrada y salida de la API |
 | Modelo (negocio) | `service/` | Reglas del dominio y transacciones |
 | Modelo (datos) | `repository/` | Capa DAO |
 | Modelo (dominio) | `entity/` | Entidades JPA |
-| Transversal | `security/`, `config/` | JWT, filtros, CORS, manejo de errores |
+| Transversal | `security/`, `config/` | JWT, filtros, CORS, errores |
 | Transversal | `monitoring/`, `maintenance/` | Sondas, métricas y tareas programadas |
-
----
 
 ## 3. Modelo de datos
 
@@ -155,17 +147,16 @@ erDiagram
     }
 ```
 
-Dos decisiones del modelo merecen explicación:
+Hay dos cosas del modelo que conviene aclarar:
 
-- **`codigo_reserva` es la clave primaria**, en lugar de un `id` autonumérico. El código
-  (`SLM-` + 8 caracteres) es el que el espectador presenta en puerta, así que se usa
-  directamente como identificador y se evita una columna redundante.
-- **`aforo_disponible` es un contador denormalizado.** Podría derivarse contando reservas,
-  pero se almacena para no recalcularlo en cada consulta de la cartelera. El precio de esa
-  decisión es que puede desincronizarse, y por eso existe la auditoría semanal descrita en
-  el [plan de mantenimiento](PLAN_MANTENIMIENTO.md).
+La clave primaria de `RESERVA` es el `codigo_reserva` (`SLM-` más 8 caracteres) y no un id
+autonumérico. Como ese código es el que el espectador muestra en la puerta, lo usamos
+directamente como identificador en vez de arrastrar una columna extra.
 
----
+`aforo_disponible` está denormalizado. Se podría calcular contando reservas, pero lo
+guardamos para no repetir esa cuenta cada vez que alguien abre la cartelera. A cambio, el
+contador se puede desincronizar, y por eso existe la auditoría semanal que describe el
+[plan de mantenimiento](PLAN_MANTENIMIENTO.md).
 
 ## 4. Flujo de una reserva
 
@@ -203,24 +194,20 @@ sequenceDiagram
     S-->>N: 201 Created + ReservaResponse
 ```
 
-Todo el método `crear` está anotado con `@Transactional`: si falla el descuento del aforo,
-la reserva tampoco se persiste.
+El método `crear` es `@Transactional`, así que si falla el descuento del aforo tampoco se
+guarda la reserva.
 
----
+## 5. Principios SOLID
 
-## 5. Principios SOLID aplicados
-
-| Principio | Dónde se observa |
+| Principio | Dónde se ve |
 |---|---|
-| **S** — Responsabilidad única | Cada capa tiene un motivo de cambio. `MetricasNegocio` publica telemetría mediante `MeterBinder` en vez de instrumentar `ReservaService`, para que las reglas de negocio no cambien cuando cambie el monitoreo. |
-| **O** — Abierto/cerrado | Añadir una sonda de salud es crear un `HealthIndicator`; Actuator la agrega sin tocar código existente. Lo mismo con un `MeterBinder` o un `@ExceptionHandler`. |
-| **L** — Sustitución de Liskov | `UserDetailsServiceImpl` cumple el contrato de `UserDetailsService`, y Spring Security lo usa sin conocer la implementación. `EntradaNoAutenticada` y `SinPermisos` sustituyen a los manejadores por defecto. |
-| **I** — Segregación de interfaces | Los repositorios declaran solo los métodos que cada caso de uso necesita. Los DTO son interfaces de datos estrechas: `PeliculaRequest` no arrastra campos que el cliente no debe enviar. |
-| **D** — Inversión de dependencias | Los servicios dependen de interfaces `Repository`, no de `EntityManager`. La inyección es por constructor (`@RequiredArgsConstructor`) con campos `final`, lo que además permite instanciar cada servicio con dobles en las pruebas. |
+| Responsabilidad única | Cada capa cambia por un solo motivo. `MetricasNegocio` publica la telemetría con un `MeterBinder` en lugar de meter contadores dentro de `ReservaService`, para que las reglas de negocio no se toquen al cambiar el monitoreo. |
+| Abierto/cerrado | Para añadir una sonda basta crear un `HealthIndicator`: Actuator la recoge sin modificar nada existente. Igual con un `MeterBinder` o un `@ExceptionHandler`. |
+| Sustitución de Liskov | `UserDetailsServiceImpl` cumple el contrato de `UserDetailsService` y Spring Security lo usa sin conocer la implementación. Lo mismo con `EntradaNoAutenticada` y `SinPermisos`, que reemplazan a los manejadores por defecto. |
+| Segregación de interfaces | Los repositorios declaran solo los métodos que hacen falta. Los DTO son interfaces estrechas: `PeliculaRequest` no trae campos que el cliente no deba mandar. |
+| Inversión de dependencias | Los servicios dependen de interfaces `Repository`, no de `EntityManager`. La inyección es por constructor con campos `final`, lo que además permite instanciarlos con mocks en las pruebas. |
 
----
-
-## 6. Arquitectura de seguridad
+## 6. Seguridad
 
 ```mermaid
 flowchart TD
@@ -245,19 +232,15 @@ flowchart TD
     style OK fill:#e6f4ea,stroke:#34a853,color:#1a1a1a
 ```
 
-La autorización se aplica en dos niveles: por ruta en `SecurityConfig` y por método con
-`@PreAuthorize` en los controladores. Es defensa en profundidad deliberada — si una ruta
-nueva se añadiera sin cubrirla en la cadena de filtros, la anotación del método seguiría
-protegiendo la operación.
+La autorización está en dos sitios: por ruta en `SecurityConfig` y por método con
+`@PreAuthorize`. Es redundante a propósito. Si mañana alguien agrega una ruta y se olvida de
+cubrirla en la cadena de filtros, la anotación del método todavía protege la operación.
 
-Detalle de los códigos 401 y 403: distinguirlos requirió configurar un
-`AuthenticationEntryPoint` explícito, ya que Spring Security devuelve 403 por defecto en
-ambos casos. El hallazgo y su corrección están documentados en el
+Para que la API distinga 401 de 403 hubo que configurar un `AuthenticationEntryPoint`
+propio, porque Spring Security responde 403 en los dos casos. Está explicado en el
 [informe de seguridad](INFORME_SEGURIDAD.md).
 
----
-
-## 7. Vista de despliegue
+## 7. Despliegue
 
 ```mermaid
 flowchart TB
@@ -286,18 +269,16 @@ flowchart TB
     style NG fill:#e8f0fe,stroke:#5b8def,color:#1a1a1a
 ```
 
-nginx sirve archivos estáticos; no actúa como proxy inverso. El navegador resuelve la URL
-de la API a partir del host que sirvió la página (`api.js`), por lo que el backend debe
-tener el puerto 8080 publicado. El detalle del procedimiento está en el
+nginx solo sirve los archivos estáticos, no hace de proxy inverso. El navegador arma la URL
+de la API con el host desde el que cargó la página (ver `api.js`), así que el backend
+necesita tener publicado el puerto 8080. El procedimiento completo está en el
 [plan de despliegue](PLAN_DESPLIEGUE.md).
 
----
-
-## 8. Documentos relacionados
+## Documentos relacionados
 
 - [Informe de pruebas de software](INFORME_PRUEBAS.md)
 - [Informe de pruebas de seguridad](INFORME_SEGURIDAD.md)
 - [Plan de despliegue](PLAN_DESPLIEGUE.md)
 - [Plan de monitoreo](PLAN_MONITOREO.md)
 - [Plan de mantenimiento](PLAN_MANTENIMIENTO.md)
-- [Referencias bibliográficas](REFERENCIAS.md)
+- [Referencias](REFERENCIAS.md)

@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
-# ==========================================================================
-#  CineClub Salamanca — Verificacion de salud de la aplicacion
-# --------------------------------------------------------------------------
-#  Consulta el endpoint publico /actuator/health y devuelve un codigo de
-#  salida apto para cron, Docker o un sistema de alertas externo.
+# Consulta /actuator/health y devuelve un codigo de salida para cron o alertas.
+# Salida: 0 = UP, 1 = DOWN o inaccesible.
 #
-#  Codigos de salida:  0 = UP    1 = DOWN o inaccesible
-#
-#  Uso:  ./scripts/healthcheck.sh
-#        URL_BASE=https://cineclub.example.com ./scripts/healthcheck.sh
-# ==========================================================================
+# Uso:  ./scripts/healthcheck.sh
+#       URL_BASE=https://cineclub.example.com ./scripts/healthcheck.sh
 
 set -uo pipefail
 
@@ -27,7 +21,7 @@ if [[ ${CODIGO_CURL} -ne 0 ]]; then
     exit 1
 fi
 
-# La respuesta tiene forma {"status":"UP","components":{...}}
+# Respuesta: {"status":"UP",...}
 ESTADO="$(echo "${RESPUESTA}" | grep -o '"status":"[A-Z_]*"' | head -1 | cut -d'"' -f4)"
 
 case "${ESTADO}" in

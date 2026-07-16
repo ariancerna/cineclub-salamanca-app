@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
-# ==========================================================================
-#  CineClub Salamanca — Restauracion de la base de datos PostgreSQL
-# --------------------------------------------------------------------------
-#  Restaura un respaldo generado por backup.sh. Un respaldo que nunca se ha
-#  restaurado no es un respaldo: este script permite probar la recuperacion.
+# Restaura un respaldo generado por backup.sh.
 #
-#  Uso:  ./scripts/restore.sh backups/cineclub_20260716_020000.sql.gz
-#        ./scripts/restore.sh --ultimo
-# ==========================================================================
+# Uso:  ./scripts/restore.sh backups/cineclub_20260716_020000.sql.gz
+#       ./scripts/restore.sh --ultimo
 
 set -euo pipefail
 
@@ -61,4 +56,4 @@ gunzip -c "${ARCHIVO}" | docker exec -i "${CONTENEDOR}" psql \
     --quiet
 
 log "Restauracion completada."
-log "Recuerda reiniciar el backend con el perfil 'prod' (ddl-auto=validate) para evitar que Hibernate altere el esquema restaurado."
+log "Reinicia el backend con el perfil 'prod' para que Hibernate no altere el esquema restaurado."

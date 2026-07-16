@@ -10,13 +10,9 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
- * Escribe errores de la cadena de filtros de seguridad con el mismo formato JSON que
- * {@link com.cineclubsalamanca.config.GlobalExceptionHandler}.
- *
- * <p>Los rechazos de {@link EntradaNoAutenticada} y {@link SinPermisos} ocurren en los
- * filtros, antes de que la petición llegue a un controlador, por lo que el
- * {@code @RestControllerAdvice} no puede darles forma. Esta clase evita que el cliente
- * reciba dos formatos de error distintos según dónde se rechace la petición.</p>
+ * Escribe los errores de los filtros de seguridad con el mismo formato JSON que
+ * GlobalExceptionHandler. Estos rechazos ocurren antes de llegar a un controlador, así que
+ * el @RestControllerAdvice no puede darles forma.
  */
 final class RespuestaJsonError {
 

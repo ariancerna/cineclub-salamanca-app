@@ -145,8 +145,7 @@ class SeguridadIntegrationTest {
     @Test
     @DisplayName("La sonda de salud es pública para el balanceador (200)")
     void health_debeSerPublico() throws Exception {
-        // Sin funciones cargadas, el indicador de cartelera reporta SIN_CARTELERA, que no
-        // degrada la salud global: la aplicación debe seguir respondiendo 200 y en rotación.
+        // Sin funciones cargadas la cartelera reporta SIN_CARTELERA, que no degrada la salud global
         mockMvc.perform(get("/actuator/health"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"));

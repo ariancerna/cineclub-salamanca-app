@@ -12,16 +12,10 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 
 /**
- * Publica métricas de negocio en Micrometer, disponibles en {@code /actuator/metrics}
- * y {@code /actuator/prometheus}.
+ * Métricas de negocio para {@code /actuator/metrics} y {@code /actuator/prometheus}.
  *
- * <p>Actuator ya entrega métricas técnicas (memoria, CPU, latencia HTTP). Estas métricas
- * responden preguntas del negocio: cuántas butacas se han reservado y cuántos espectadores
- * llegaron realmente a la sala.</p>
- *
- * <p>Se implementa como {@link MeterBinder} y no instrumentando los servicios, para que la
- * lógica de negocio no dependa de la capa de monitoreo (principio de responsabilidad única).
- * Los valores se leen bajo demanda, cuando el sistema de monitoreo consulta las métricas.</p>
+ * <p>Se implementa como MeterBinder para no tener que instrumentar los servicios.
+ * Los valores se leen cuando el sistema de monitoreo consulta las métricas.</p>
  */
 @Component
 @RequiredArgsConstructor

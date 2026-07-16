@@ -1,12 +1,5 @@
-# ==========================================================================
-#  CineClub Salamanca — Orquestacion de servicios
-# --------------------------------------------------------------------------
-#  Desarrollo (solo base de datos, backend desde el IDE):
-#      docker compose up -d db
-#
-#  Despliegue completo (base de datos + backend + frontend):
-#      docker compose --profile completo up -d --build
-# ==========================================================================
+# Desarrollo (solo base de datos):  docker compose up -d db
+# Despliegue completo:              docker compose --profile completo up -d --build
 
 services:
   db:
@@ -21,7 +14,6 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # El backend espera a que la base acepte conexiones, no solo a que arranque
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -39,6 +31,7 @@ services:
     restart: always
     depends_on:
       db:
+        # Espera a que la base acepte conexiones, no solo a que arranque
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -53,7 +46,6 @@ services:
     ports:
       - "${SERVER_PORT:-8080}:8080"
     volumes:
-      # Los logs se conservan fuera del contenedor para poder auditarlos
       - ./logs:/app/logs
 
   frontend:

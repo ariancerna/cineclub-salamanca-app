@@ -10,28 +10,14 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 
 /**
- * Indicador de salud funcional de la cartelera.
- *
- * <p>Complementa a las sondas técnicas de Actuator (base de datos, disco). Una aplicación
- * puede responder correctamente y aun así ser inútil para el espectador si no hay funciones
- * futuras publicadas: la cartelera aparecería vacía.</p>
- *
- * <p>Una cartelera vacía se reporta con el estado propio {@link #SIN_CARTELERA} y
- * <em>no</em> como {@code DOWN}. La diferencia es deliberada: Actuator traduce {@code DOWN}
- * a un HTTP 503, lo que haría que el balanceador retirase la instancia y que Docker
- * reiniciase el contenedor. Pero que el administrador no haya programado funciones es una
- * condición de negocio, no una avería del sistema: la aplicación sigue sana y debe seguir
- * atendiendo tráfico. Los estados no reconocidos se mapean a HTTP 200 y tienen menor
- * precedencia que {@code UP} al agregar, de modo que el aviso queda visible en el detalle
- * del endpoint sin degradar la salud global.</p>
- *
- * <p>Se consulta desde {@code GET /actuator/health}, bajo la clave {@code cartelera}.</p>
+ * Sonda de salud de la cartelera. Aparece en {@code GET /actuator/health} bajo la
+ * clave {@code cartelera}.
  */
 @Component("cartelera")
 @RequiredArgsConstructor
 public class CarteleraHealthIndicator implements HealthIndicator {
 
-    /** No hay funciones futuras: la cartelera está vacía, pero la aplicación opera con normalidad. */
+    /** Cartelera vacía. No es DOWN: Actuator mapea DOWN a 503 y el balanceador retiraría la instancia. */
     public static final Status SIN_CARTELERA = new Status("SIN_CARTELERA",
             "No hay funciones futuras programadas");
 
@@ -56,7 +42,6 @@ public class CarteleraHealthIndicator implements HealthIndicator {
                     .build();
 
         } catch (Exception e) {
-            // Un fallo al consultar sí es una avería real: aquí DOWN es lo correcto.
             return Health.down(e)
                     .withDetail("motivo", "No se pudo consultar la cartelera")
                     .build();

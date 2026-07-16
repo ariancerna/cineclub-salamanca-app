@@ -17,13 +17,8 @@ import java.time.LocalTime;
 import java.util.List;
 
 /**
- * Tareas programadas de mantenimiento de la aplicación (cron jobs).
- *
- * <p>Las expresiones cron se leen desde la configuración para poder ajustarlas por entorno
- * sin recompilar. Todas las tareas son idempotentes y registran su resultado en el log, de
- * modo que su ejecución queda auditada junto con el resto de la operación.</p>
- *
- * @see com.cineclubsalamanca.config.SchedulingConfig
+ * Tareas programadas de mantenimiento. Las expresiones cron se leen de la configuración
+ * para poder ajustarlas por entorno.
  */
 @Component
 @Slf4j
@@ -33,16 +28,12 @@ public class TareasMantenimiento {
     private final ReservaRepository reservaRepository;
     private final FuncionRepository funcionRepository;
 
-    /** Meses de antigüedad a partir de los cuales una reserva pasada deja de conservarse. */
     @Value("${app.mantenimiento.retencion-meses:12}")
     private int retencionMeses;
 
     /**
-     * Reporte diario de operación. Deja en el log el volumen de reservas del día y el
-     * aforo remanente, lo que permite reconstruir la actividad histórica desde los logs
-     * rotados sin necesidad de consultar la base de datos.
-     *
-     * <p>Se ejecuta a las 23:00 todos los días, tras la última función.</p>
+     * Registra el volumen de reservas del día y el aforo remanente. Permite reconstruir la
+     * actividad histórica desde los logs aunque las reservas ya se hayan purgado.
      */
     @Scheduled(cron = "${app.mantenimiento.cron.reporte-diario:0 0 23 * * *}")
     public void reporteDiarioDeOperacion() {
@@ -60,14 +51,11 @@ public class TareasMantenimiento {
     }
 
     /**
-     * Audita la consistencia del aforo de las funciones futuras.
+     * Recalcula el aforo de las funciones futuras y corrige las desviaciones.
      *
-     * <p>El aforo disponible se descuenta al crear cada reserva. Si una transacción falla a
-     * medias, o dos reservas concurrentes se solapan, el contador puede desviarse respecto
-     * al número real de reservas. Esta tarea recalcula el valor correcto
-     * ({@code aforoMaximo - reservas}) y corrige las desviaciones, dejando constancia en el log.</p>
-     *
-     * <p>Se ejecuta los lunes a las 03:30, fuera del horario de funciones.</p>
+     * <p>El aforo se descuenta al crear cada reserva, sin bloqueo. Si una transacción falla
+     * a medias o dos reservas concurrentes se solapan, el contador se desvía del número real
+     * de reservas.</p>
      */
     @Scheduled(cron = "${app.mantenimiento.cron.auditoria-aforo:0 30 3 * * MON}")
     @Transactional
@@ -93,13 +81,8 @@ public class TareasMantenimiento {
     }
 
     /**
-     * Purga las reservas de funciones antiguas según la política de retención.
-     *
-     * <p>Evita el crecimiento indefinido de la tabla {@code reserva}. Los detalles del
-     * minibar se eliminan en cascada. El histórico agregado permanece en los reportes
-     * diarios del log, por lo que el borrado no pierde información de gestión.</p>
-     *
-     * <p>Se ejecuta el día 1 de cada mes a las 04:00.</p>
+     * Elimina las reservas de funciones anteriores al periodo de retención, para que la
+     * tabla no crezca de forma indefinida. Los detalles del minibar caen en cascada.
      */
     @Scheduled(cron = "${app.mantenimiento.cron.purga-reservas:0 0 4 1 * *}")
     @Transactional

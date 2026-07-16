@@ -73,13 +73,11 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- Monitoreo: health checks y métricas -->
+        <!-- Monitoreo -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-
-        <!-- Monitoreo: exposición de métricas en formato Prometheus -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
@@ -135,7 +133,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Cobertura de pruebas: genera target/site/jacoco/index.html -->
+            <!-- Cobertura: genera target/site/jacoco/index.html -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -154,7 +152,7 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
-                    <!-- La capa de servicios concentra la lógica de negocio: exigimos 70% de líneas -->
+                    <!-- Suelo del 70% sobre la capa que concentra la lógica de negocio -->
                     <execution>
                         <id>verificar-cobertura-minima</id>
                         <phase>verify</phase>
@@ -182,7 +180,7 @@
                 </executions>
             </plugin>
 
-            <!-- Documentación técnica del código (anexo: Javadoc) -->
+            <!-- Javadoc -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -193,7 +191,7 @@
                     <charset>UTF-8</charset>
                     <doctitle>CineClub Salamanca — API de Reservas ${project.version}</doctitle>
                     <windowtitle>CineClub Salamanca — Documentación técnica</windowtitle>
-                    <!-- El proyecto documenta la API pública, no cada getter generado por Lombok -->
+                    <!-- Sin doclint: documentamos la API pública, no cada getter de Lombok -->
                     <doclint>none</doclint>
                     <show>protected</show>
                 </configuration>
@@ -211,9 +209,8 @@
     </build>
 
     <profiles>
-        <!-- Análisis de vulnerabilidades en dependencias (SCA).
-             Se activa aparte porque descarga la base de datos NVD y tarda varios minutos:
-             ./mvnw verify -Pseguridad -->
+        <!-- Análisis de vulnerabilidades: ./mvnw verify -Pseguridad
+             Va aparte porque descarga el catálogo NVD y tarda varios minutos. -->
         <profile>
             <id>seguridad</id>
             <build>
@@ -227,7 +224,7 @@
                                 <format>HTML</format>
                                 <format>JSON</format>
                             </formats>
-                            <!-- Falla la build ante vulnerabilidades altas o críticas (CVSS >= 7) -->
+                            <!-- Falla ante vulnerabilidades altas o críticas -->
                             <failBuildOnCVSS>7</failBuildOnCVSS>
                             <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                         </configuration>

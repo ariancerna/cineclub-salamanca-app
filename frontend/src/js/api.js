@@ -1,6 +1,5 @@
-// La URL del backend se deriva del host desde el que se sirve la pagina, para que el
-// mismo frontend funcione en local y en el servidor desplegado. Puede sobrescribirse
-// definiendo window.CINECLUB_API_URL antes de cargar este script.
+// Se deriva del host que sirve la pagina para que funcione igual en local y desplegado.
+// Se puede forzar con window.CINECLUB_API_URL antes de cargar este script.
 const API_PORT = '8080';
 const BASE_URL = window.CINECLUB_API_URL
     || `${window.location.protocol}//${window.location.hostname}:${API_PORT}/api`;

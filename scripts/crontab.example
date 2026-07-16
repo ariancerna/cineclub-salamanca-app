@@ -1,36 +1,27 @@
-# ==========================================================================
-#  CineClub Salamanca — Cron jobs del sistema operativo (servidor Linux)
-# --------------------------------------------------------------------------
-#  Instalar con:  crontab scripts/crontab.example
-#  Verificar con: crontab -l
+# Cron jobs de infraestructura del servidor.
+#   Instalar:  crontab scripts/crontab.example
+#   Verificar: crontab -l
 #
-#  Nota: las tareas de LOGICA DE NEGOCIO (reporte diario, auditoria de aforo,
-#  purga de reservas) NO viven aqui: se ejecutan dentro de la aplicacion con
-#  @Scheduled (ver TareasMantenimiento.java), porque necesitan acceso al
-#  modelo de dominio y a las transacciones de JPA.
-#
-#  Este crontab cubre las tareas de INFRAESTRUCTURA, que deben sobrevivir
-#  aunque la aplicacion este caida.
-# ==========================================================================
+# Las tareas de negocio (reporte diario, auditoria de aforo, purga) no estan aqui:
+# corren dentro de la aplicacion con @Scheduled porque necesitan acceso al dominio
+# y a las transacciones. Aqui solo va lo que debe funcionar aunque la app este caida.
 
 SHELL=/bin/bash
 PATH=/usr/local/bin:/usr/bin:/bin
 PROYECTO=/opt/cineclub-salamanca
 MAILTO=admin@cineclub.com
 
-# --- Respaldo diario de la base de datos (02:00) ---
+# Respaldo diario
 0 2 * * * cd $PROYECTO && ./scripts/backup.sh >> /var/log/cineclub/backup.log 2>&1
 
-# --- Verificacion de salud cada 5 minutos ---
+# Verificacion de salud cada 5 minutos
 */5 * * * * cd $PROYECTO && ./scripts/healthcheck.sh >> /var/log/cineclub/health.log 2>&1
 
-# --- Prueba mensual de restauracion sobre base de ensayo (dia 15, 05:00) ---
-# Un respaldo que nunca se restaura no es un respaldo: se valida cada mes.
+# Prueba mensual de restauracion sobre una base de ensayo
 0 5 15 * * cd $PROYECTO && CONTENEDOR_DB=cineclub-db-ensayo ./scripts/restore.sh --ultimo >> /var/log/cineclub/restore-test.log 2>&1
 
-# --- Limpieza de logs rotados con mas de 90 dias (domingos, 04:30) ---
-# Logback ya rota y comprime; esta tarea es la red de seguridad del sistema de archivos.
+# Limpieza de logs rotados con mas de 90 dias
 30 4 * * 0 find $PROYECTO/logs -name '*.log.gz' -mtime +90 -delete
 
-# --- Poda de imagenes y volumenes Docker huerfanos (domingos, 05:30) ---
+# Poda de imagenes y volumenes Docker huerfanos
 30 5 * * 0 docker system prune -f --filter "until=720h" >> /var/log/cineclub/docker-prune.log 2>&1
