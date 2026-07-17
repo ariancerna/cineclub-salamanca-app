@@ -168,6 +168,6 @@ docker compose --profile completo up -d --build
 
 The backend image is built in two stages: Maven compiles it and the final image keeps only the JAR on a JRE, running as an unprivileged user. See the [deployment plan](docs/PLAN_DESPLIEGUE.md).
 
-## Team members
+## Author
 
-Joan Pelayo Soto (Backend Developer), Arian Cerna Martinez (Frontend Developer), Fabián Morocho Rosales (Project Manager), Fabrizio Santillán Valdiviezo (Functional Analyst), and Gianmarco Chávez Mejía (Testing and Documentation).
+Arian Cerna Martinez — analysis, backend, frontend, testing, deployment and documentation.
